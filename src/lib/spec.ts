@@ -1,4 +1,4 @@
-interface Result {
+export interface Result {
   score: number;
   scoreRank: string; // its C B A S or so i dont remember, so just make this a string
   highScore: number;
@@ -17,8 +17,10 @@ interface Result {
 
   song: {
     name: string;
-    difficulty: "easy" | "normal" | "hard" | "master" | "append";
+    difficulty: "easy" | "normal" | "hard" | "master" | "append" | "";
     level: number;
   };
 }
+
+export type Difficulty = Result['song']['difficulty'];
 
