@@ -2,7 +2,7 @@ import Tesseract from 'tesseract.js';
 
 import { normalizeForMatch, normalizeText } from './normalize';
 import { preprocessImage, sanitizeRawText } from './preprocess';
-import type { OcrLine, OcrPage, OcrWord, RecognizeOptions, Rect } from './types';
+import type { OcrLine, OcrPage, OcrWord, Rect } from './types';
 
 let workerPromise: Promise<Tesseract.Worker> | null = null;
 let currentLanguages = '';
@@ -56,15 +56,9 @@ function toLine(line: Tesseract.Line): OcrLine {
   };
 }
 
-async function getWorker(languages: string): Promise<Tesseract.Worker> {
-  if (!workerPromise || currentLanguages !== languages) {
-    if (workerPromise) {
-      const previousWorker = await workerPromise;
-      await previousWorker.terminate();
-    }
-
-    currentLanguages = languages;
-    workerPromise = Tesseract.createWorker(languages);
+async function getWorker(): Promise<Tesseract.Worker> {
+  if (!workerPromise) {
+    workerPromise = Tesseract.createWorker("eng+jpn");
 
     const worker = await workerPromise;
     await worker.setParameters({
@@ -78,11 +72,11 @@ async function getWorker(languages: string): Promise<Tesseract.Worker> {
 
 export async function recognizePage(
   source: string | Blob | HTMLImageElement,
-  options: RecognizeOptions
+  options: {}
 ): Promise<OcrPage> {
   const usePreprocess = hasDomCanvasSupport();
   const imageInput = usePreprocess ? await preprocessImage(source) : source;
-  const worker = await getWorker(options.languages);
+  const worker = await getWorker();
 
   const recognized = await worker.recognize(imageInput, {}, { blocks: true, text: true });
   const page = recognized.data;

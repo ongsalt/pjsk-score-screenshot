@@ -1,15 +1,12 @@
 <script lang="ts">
   import type { ExtractionOutput } from "$lib";
-  import { OCRWorker } from "$lib/screenshot/worker";
+  import { extractResultFromImage } from "$lib";
 
   let selectedFile = $state<File | null>(null);
   let previewUrl = $state<string>("");
-
-  let isProcessing = $state(false);
+  let result = $state<ExtractionOutput | null>(null);
   let errorMessage = $state<string>("");
-  let result = $state<any>(null);
-
-  const worker = new OCRWorker();
+  let isProcessing = $state(false);
 
   function setPreview(file: File | null): void {
     if (!file) {
@@ -38,9 +35,7 @@
     errorMessage = "";
 
     try {
-      const res = await worker.recognize(source);
-      console.log(res)
-      result = res
+      result = await extractResultFromImage(source);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Extraction failed.";
@@ -101,7 +96,19 @@
       <article>
         <h2>Extracted JSON</h2>
         {#if result}
-          <pre>{JSON.stringify(result, null, 2)}</pre>
+          <pre>{JSON.stringify(result.result, null, 2)}</pre>
+
+          {#if result.warnings.length > 0}
+            <h3>Warnings</h3>
+            <ul>
+              {#each result.warnings as warning}
+                <li>{warning}</li>
+              {/each}
+            </ul>
+          {/if}
+
+          <h3>Raw OCR text</h3>
+          <pre>{JSON.stringify(result.result)}</pre>
         {:else}
           <p>Run OCR to see structured output.</p>
         {/if}

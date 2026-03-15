@@ -45,13 +45,10 @@ export interface ExtractionOutput {
   rawText: string;
 }
 
-export interface RecognizeOptions {
-  languages: string;
-}
-
 export interface ExtractOptions {
-  languages?: string;
-  includeRawText?: boolean;
+  y1: number;
+  y2: number;
+  x1: number;
 }
 
 export interface LabelMatch {
@@ -67,4 +64,9 @@ export interface SongGuess {
 export interface DifficultyGuess {
   difficulty: Difficulty;
   confidence: number;
+}
+
+
+interface RecognizeOptions {
+  
 }
