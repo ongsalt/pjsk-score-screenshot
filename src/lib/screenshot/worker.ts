@@ -16,7 +16,7 @@ export class OCRWorker {
   }
 
   async recognize(
-    source: Blob | HTMLImageElement, // we shuold normalize this first
+    source: string | Blob | HTMLImageElement, // we shuold normalize this first
     options: Partial<RecognizeOptions> = {},
   ) {
     const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
