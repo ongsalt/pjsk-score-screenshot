@@ -1,111 +1,16 @@
 <script lang="ts">
-  import type { ExtractionOutput } from "$lib";
-  import { OCRWorker } from "$lib/screenshot/worker";
-
-  let selectedFile = $state<File | null>(null);
-  let previewUrl = $state<string>("");
-
-  let isProcessing = $state(false);
-  let errorMessage = $state<string>("");
-  let result = $state<any>(null);
-
-  const worker = new OCRWorker();
-
-  function setPreview(file: File | null): void {
-    if (!file) {
-      previewUrl = "";
-      return;
-    }
-
-    previewUrl = URL.createObjectURL(file);
-  }
-
-  function onFileChange(event: Event): void {
-    const target = event.currentTarget;
-    if (!(target instanceof HTMLInputElement)) {
-      return;
-    }
-
-    const file = target.files?.[0] ?? null;
-    selectedFile = file;
-    result = null;
-    errorMessage = "";
-    setPreview(file);
-  }
-
-  async function runExtraction(source: string | File): Promise<void> {
-    isProcessing = true;
-    errorMessage = "";
-
-    try {
-      const res = await worker.recognize(source);
-      console.log(res)
-      result = res
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Extraction failed.";
-      errorMessage = message;
-    } finally {
-      isProcessing = false;
-    }
-  }
-
-  async function analyzeSelectedFile(): Promise<void> {
-    if (!selectedFile) {
-      errorMessage = "Choose an image first.";
-      return;
-    }
-
-    await runExtraction(selectedFile);
-  }
+  import FilesUploader from "$lib/components/files-uploader.svelte";
 </script>
 
 <svelte:head>
   <title>PJSK Result OCR Demo</title>
 </svelte:head>
 
-<main>
-  <div class="prose">
-    <header>
-      <h1>Extract score data from screenshots</h1>
-    </header>
-
-    <section>
-      <article>
-        <div>
-          <label>
-            <input type="file" accept="image/*" onchange={onFileChange} />
-            <span class="text-blue-600"> Select screenshot </span>
-          </label>
-          <button
-            class="text-blue-600"
-            type="button"
-            onclick={analyzeSelectedFile}
-            disabled={isProcessing}
-          >
-            {isProcessing ? "Analyzing..." : "Analyze selected image"}
-          </button>
-        </div>
-
-        <div>
-          <img src={previewUrl} alt="Screenshot preview" />
-        </div>
-
-        {#if errorMessage}
-          <p>
-            {errorMessage}
-          </p>
-        {/if}
-      </article>
-
-      <article>
-        <h2>Extracted JSON</h2>
-        {#if result}
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        {:else}
-          <p>Run OCR to see structured output.</p>
-        {/if}
-      </article>
-    </section>
+<main class="px-6 pt-4 space-y-2">
+  <FilesUploader />
+  <div class="border">
+    <h2>Settings</h2>
   </div>
+  
+  <button class="border">start</button>
 </main>

@@ -2,18 +2,15 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pjsk-stuff",
   "compatibility_date": "2026-03-13",
-  "compatibility_flags": [
-    "nodejs_als"
-  ],
-  // "main": ".svelte-kit/cloudflare/_worker.js",
+  // TODO: configure 404
   "assets": {
     // "binding": "ASSETS",
     "directory": "build",
   },
-  "build": {
-    "watch_dir": "./src",
-    "command": "bun run build"
-  },
+  // "build": {
+  //   "watch_dir": "./src",
+  //   "command": "bun run build"
+  // },
   "workers_dev": false,
   "route": {
     "pattern": "sekai.ongsa.lt",
