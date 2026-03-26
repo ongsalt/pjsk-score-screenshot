@@ -2,7 +2,7 @@
   let { children, data } = $props();
 
   let searchValue = $state("");
-  let lowerCasedSearchValue = $derived(searchValue.toLowerCase());
+  let lowerCasedSearchValue = $derived(searchValue.toLowerCase().trim());
   // TODO: better search, en name
   const songs = $derived(
     data.songs.filter(
@@ -28,15 +28,24 @@
       />
       <label>
         <input type="checkbox" />
-        only played 
+        only played
       </label>
-      <p>sort: default</p>
+      <label>
+        sort
+        <select name="" id="" class="border">
+          <option value="">default</option>
+          <option value="">last played</option>
+        </select>
+      </label>
       <!-- <p>this is pretty much osu song selector</p> -->
     </div>
 
     <div class="flex flex-col">
       {#each songs as song, i}
-        <a href="/history/{song.id}" class="flex flex-col hover:underline px-2 py-1">
+        <a
+          href="/history/{song.id}"
+          class="flex flex-col hover:underline px-2 py-1"
+        >
           <span>
             {song.title}
           </span>
@@ -44,11 +53,18 @@
             {song.composer}
           </span>
         </a>
+      {:else}
+        <div class="flex flex-col items-center w-full py-6">
+          <span class="opacity-65 font-mono text-lg">
+            (*￣3￣)╭
+          </span>
+          <span class="text-sm  mt-2">No results</span>
+        </div>
       {/each}
     </div>
   </section>
 
-  <section>
+  <section class="overflow-y-scroll flex-1">
     {@render children?.()}
   </section>
 </main>
