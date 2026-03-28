@@ -1,4 +1,4 @@
-import { getSongs } from "$lib/data/song";
+import { getSongs } from "$lib/data/song.svelte";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async () => {

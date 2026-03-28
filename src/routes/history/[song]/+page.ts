@@ -1,4 +1,4 @@
-import { getSongDetail } from "$lib/data/song";
+import { getSongDetail } from "$lib/data/song.svelte";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 

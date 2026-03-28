@@ -3,10 +3,13 @@
     FilesUploaderState,
   } from "$lib/components/files-uploader.svelte";
   import { preferences } from "$lib/preferences";
-  import { geminiFuckingDoYourJob, toBase64 } from "$lib/screenshot/ocr/gemini";
+  import { geminiFuckingDoYourJob } from "$lib/screenshot/ocr/gemini";
   import { OCRWorker } from "$lib/screenshot/ocr/tesseract";
   import { parseResult } from "$lib/screenshot/parse";
   import { PersistedState } from "runed";
+  import ExifReader from "exifreader";
+
+  let { data } = $props();
 
   // 0. select images
   //    hash, remove duplicated
@@ -23,6 +26,7 @@
 
   let result: any = $state(null);
 
+  const songRepository = $derived(data.songRepository);
   const model = new PersistedState("preferredModel", "gemini");
   const engine = new OCRWorker();
 
@@ -31,7 +35,13 @@
     if (!image) {
       return;
     }
-    
+
+    // wtf is this shi
+    const i = new Image()
+    i.src = filesUploaderState.previewUrls[0]!
+
+    // const metadata = await ExifReader.load(image)
+
     if (model.current == "gemini") {
       result = JSON.parse(
         (await geminiFuckingDoYourJob(preferences.geminiApiKey, image)).text ??
@@ -39,7 +49,7 @@
       );
     } else {
       const r = await engine.recognize(image);
-      result = [parseResult(r, 0, 0), r];
+      result = [parseResult(r, i.naturalWidth, i.naturalHeight, songRepository), r];
     }
   }
 </script>

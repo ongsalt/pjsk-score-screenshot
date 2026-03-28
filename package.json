@@ -28,6 +28,9 @@
 	},
 	"dependencies": {
 		"@google/genai": "^1.46.0",
+		"@tanstack/svelte-query": "^6.1.10",
+		"exifreader": "^4.37.0",
+		"fuse.js": "^7.1.0",
 		"runed": "^0.37.1",
 		"tesseract.js": "^7.0.0",
 		"vitest": "^4.1.0",

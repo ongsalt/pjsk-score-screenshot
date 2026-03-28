@@ -10,7 +10,6 @@ export const preferences = {
   set skipVerification(value) {
     skipVerification.current = value;
   },
-
   get geminiApiKey() {
     return geminiApiKey.current;
   },
