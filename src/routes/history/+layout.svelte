@@ -2,7 +2,7 @@
   import { page } from "$app/state";
   import TopInset from "$lib/components/shell/top-inset.svelte";
   import { songId, type Song } from "$lib/data/song.svelte.js";
-  import Fuse from "fuse.js";
+  import { Index } from "flexsearch";
   import { PersistedState, Throttled } from "runed";
 
   let { children, data } = $props();
@@ -16,36 +16,42 @@
     200,
   );
 
-  // TODO: better search
-  // fuse???
-  const fuse = $derived.by(() => {
-    console.log("rerun")
-    return new Fuse([...data.songRepository.songs.values()], {
-      keys: [
-        "jp.title",
-        "jp.pronunciation",
-        "jp.arranger",
-        "jp.composer",
-        "jp.lyricist",
-        "en.title",
-        "en.pronunciation",
-        "en.arranger",
-        "en.composer",
-        "en.lyricist",
-      ],
+  const index = $derived.by(() => {
+    const index = new Index({
+      tokenize: "bidirectional"
     });
+    for (const song of data.songRepository.songs) {
+      const text = [
+        song.jp?.title,
+        song.jp?.pronunciation,
+        song.jp?.arranger,
+        song.jp?.composer,
+        song.jp?.lyricist,
+        song.en?.title,
+        song.en?.pronunciation,
+        song.en?.arranger,
+        song.en?.composer,
+        song.en?.lyricist,
+      ]
+        .filter((it) => it != undefined)
+        .join(" ");
+      index.add(songId(song), text);
+    }
+
+    return index;
   });
 
   const matched = $derived.by(() => {
     if (searchValue === "") {
       return data.songRepository.songs.values();
     } else {
-      return fuse.search(searchValue).map((it) => it.item);
+      return index
+        .search(searchValue)
+        .map((id) => data.songRepository.songsById.get(id as number)!);
     }
   });
 
   const isRoot = $derived(page.route.id === "/history");
-
 
   function songTitle(song: Song) {
     if (showEnName.current) {

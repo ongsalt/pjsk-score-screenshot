@@ -32,12 +32,11 @@
 		"@silvia-odwyer/photon": "^0.3.3",
 		"@tanstack/svelte-query": "^6.1.10",
 		"exifreader": "^4.37.0",
-		"fuse.js": "^7.1.0",
+		"flexsearch": "^0.8.212",
 		"runed": "^0.37.1",
 		"tesseract.js": "^7.0.0",
 		"vite-plugin-wasm": "^3.6.0",
 		"vitest": "^4.1.0",
-		"zod": "^4.3.6",
-		"zod-to-json-schema": "^3.25.2"
+		"zod": "^4.3.6"
 	}
 }

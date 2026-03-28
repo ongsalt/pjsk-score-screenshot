@@ -23,7 +23,7 @@ export class OCRWorker {
   }
 
   async recognize(
-    source: Blob, // we shuold normalize this first
+    source: Blob | Buffer, // we shuold normalize this first
     options: Partial<RecognizeOptions> = {},
   ): Promise<RecognizeResult> {
     // const photonImage = !browser
@@ -37,7 +37,7 @@ export class OCRWorker {
 
     // const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
     // const imageInput = usePreprocess ? await preprocessImage(source) : source;
-    const imageInput = sources
+    const imageInput = source
 
     const recognized = await this.#worker!.recognize(
       imageInput,

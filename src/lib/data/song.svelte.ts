@@ -1,7 +1,7 @@
 // https://sekai-world.github.io/sekai-master-db-diff/musics.json
 
 import { queryOptions } from "@tanstack/svelte-query";
-import Fuse from "fuse.js";
+import { Index } from "flexsearch";
 import { SvelteMap } from "svelte/reactivity";
 
 export type ApiSong = {
@@ -105,13 +105,22 @@ const fetchSongsOptions = queryOptions({
 export class SongRepository {
   songs: Song[] = $state([]);
   songsById = new SvelteMap<number, Song>();
-  fuse = $derived(
-    new Fuse(this.songs, {
-      keys: ["jp.title", "en.title"],
-    }),
-  );
   difficulties = new SvelteMap<number, Difficulty>();
   loading = $state(true);
+
+  #songNameIndex = $derived.by(() => {
+    const index = new Index();
+    for (const song of this.songs) {
+      const id = songId(song);
+      [song.en?.title, song.jp?.title]
+        .filter((it) => it != undefined)
+        .forEach((name) => {
+          index.add(id, name);
+        });
+    }
+
+    return index;
+  });
 
   ready: Promise<any>;
 
@@ -146,19 +155,19 @@ export class SongRepository {
   // TODO: we cant infer note count reliably because hold note miss info is no where to be found
   // wait is this true, or does it register as Great insteaad
   matchSong(name: string, noteCount: number) {
-    const matched = this.fuse.search(name);
-    const song = matched.at(0)?.item;
-    if (!song) {
+    const matched = this.#songNameIndex.search(name);
+    const id = matched.at(0);
+    if (!id) {
       return;
     }
 
     const difficulty = this.difficulties
       .values()
-      .filter((it) => it.musicId === songId(song))
+      .filter((it) => it.musicId === id)
       .find((it) => it.totalNoteCount === noteCount);
 
     return {
-      song,
+      song: this.songsById.get(id as number),
       difficulty,
     };
   }
