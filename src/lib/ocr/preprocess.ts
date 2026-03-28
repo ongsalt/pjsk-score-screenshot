@@ -1,6 +1,6 @@
 import { normalizeText } from "./normalize";
 
-type ImageSource = string | Blob | HTMLImageElement;
+type ImageSource = string | Blob | Buffer | HTMLImageElement;
 
 interface PreprocessOptions {
   scale: number;

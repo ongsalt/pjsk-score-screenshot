@@ -2,6 +2,7 @@
   import TopInset from "$lib/components/shell/top-inset.svelte";
 
   let { data } = $props();
+  const song = $derived(data.detail.song)
 
   const diffNames = ["Easy", "Normal", "Hard", "Expert", "Master", "Append"];
 </script>
@@ -9,10 +10,10 @@
 <TopInset />
 <main class="p-4">
   <h2 class="text-2xl">
-    {data.detail.song.title}
+    {song.en?.title ?? song.jp?.title}
   </h2>
   <p>
-    {data.detail.song.composer}
+    {song.en?.composer ?? song.jp?.composer}
   </p>
 
   <div class="flex gap-2 mt-4">

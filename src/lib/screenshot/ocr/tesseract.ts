@@ -1,4 +1,6 @@
-import { preprocessImage } from "$lib/ocr/preprocess";
+import { grayscale, PhotonImage, threshold } from "@silvia-odwyer/photon";
+import initPhoton from "@silvia-odwyer/photon";
+import wasmUrl from "@silvia-odwyer/photon/photon_rs_bg.wasm?url";
 import Tesseract, { type Bbox } from "tesseract.js";
 
 export class OCRWorker {
@@ -14,16 +16,28 @@ export class OCRWorker {
         preserve_interword_spaces: "1",
         tessedit_char_blacklist: "©°",
       });
+
+      // await initPhoton({ module_or_path: wasmUrl });
+      console.log(grayscale);
     })();
   }
 
   async recognize(
-    source: string | Blob | HTMLImageElement, // we shuold normalize this first
+    source: Blob, // we shuold normalize this first
     options: Partial<RecognizeOptions> = {},
   ): Promise<RecognizeResult> {
-    const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
-    const usePreprocess = parsedOptions.preprecess && hasDomCanvasSupport();
-    const imageInput = usePreprocess ? await preprocessImage(source) : source;
+    // const photonImage = !browser
+    //   ? PhotonImage.new_from_byteslice(source)
+    //   : PhotonImage.new_from_blob(source as Blob);
+    // const photonImage = PhotonImage.new_from_blob(source);
+    // grayscale(photonImage);
+    // // threshold(photonImage, 142);
+    // const buffer = photonImage.get_bytes();
+    // const imageInput = new Blob([buffer as any], { type: "image/png" });
+
+    // const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
+    // const imageInput = usePreprocess ? await preprocessImage(source) : source;
+    const imageInput = sources
 
     const recognized = await this.#worker!.recognize(
       imageInput,
@@ -85,9 +99,9 @@ function normalize(
 }
 
 interface RecognizeOptions {
-  preprecess: boolean;
+  preprocess: boolean;
 }
 
 const DEFAULT_OPTIONS: RecognizeOptions = {
-  preprecess: true,
+  preprocess: true,
 };

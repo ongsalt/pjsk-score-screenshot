@@ -88,9 +88,8 @@ export async function fetchSongs(): Promise<
       });
     }
   }
-  
-  const difficulties = new Map(jpDifficulties.map((it) => [it.musicId, it]));
-  
+
+  const difficulties = new Map(jpDifficulties.map((it) => [it.id, it]));
 
   return [songs, difficulties];
 }
@@ -106,6 +105,11 @@ const fetchSongsOptions = queryOptions({
 export class SongRepository {
   songs: Song[] = $state([]);
   songsById = new SvelteMap<number, Song>();
+  fuse = $derived(
+    new Fuse(this.songs, {
+      keys: ["jp.title", "en.title"],
+    }),
+  );
   difficulties = new SvelteMap<number, Difficulty>();
   loading = $state(true);
 
@@ -131,31 +135,32 @@ export class SongRepository {
       return undefined;
     }
 
-    const diff = this.difficulties.get(id)!;
+    const diff = this.difficulties.values().filter((it) => it.musicId === id);
+
     return {
       song,
-      difficulties: diff,
+      difficulties: [...diff],
     };
   }
 
   // TODO: we cant infer note count reliably because hold note miss info is no where to be found
+  // wait is this true, or does it register as Great insteaad
   matchSong(name: string, noteCount: number) {
-    const filtered = this.difficulties
+    const matched = this.fuse.search(name);
+    const song = matched.at(0)?.item;
+    if (!song) {
+      return;
+    }
+
+    const difficulty = this.difficulties
       .values()
-      // .filter((it) => it.totalNoteCount >= noteCount - 10 && it.totalNoteCount <= noteCount + 10);
+      .filter((it) => it.musicId === songId(song))
+      .find((it) => it.totalNoteCount === noteCount);
 
-    const candidates = filtered.map((it) => ({
-      difficulty: it,
-      song: this.songsById.get(it.musicId),
-    })).toArray();
-
-    console.log({ candidates });
-    const fuse = new Fuse(candidates, {
-      keys: ["song.jp.title", "song.en.title"],
-    });
-
-    const matched = fuse.search(name);
-    return matched.at(0)?.item;
+    return {
+      song,
+      difficulty,
+    };
   }
 }
 

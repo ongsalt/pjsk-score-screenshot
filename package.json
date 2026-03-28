@@ -19,6 +19,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.1.18",
+		"image-size": "^2.0.2",
 		"svelte": "^5.51.0",
 		"svelte-check": "^4.4.2",
 		"tailwindcss": "^4.1.18",
@@ -28,11 +29,13 @@
 	},
 	"dependencies": {
 		"@google/genai": "^1.46.0",
+		"@silvia-odwyer/photon": "^0.3.3",
 		"@tanstack/svelte-query": "^6.1.10",
 		"exifreader": "^4.37.0",
 		"fuse.js": "^7.1.0",
 		"runed": "^0.37.1",
 		"tesseract.js": "^7.0.0",
+		"vite-plugin-wasm": "^3.6.0",
 		"vitest": "^4.1.0",
 		"zod": "^4.3.6",
 		"zod-to-json-schema": "^3.25.2"

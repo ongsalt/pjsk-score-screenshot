@@ -61,9 +61,9 @@ export function parseResult(
     song: {
       id: map(songDetail?.song, songId) ?? undefined,
       name: songDetail?.song?.en?.title ?? songDetail?.song?.jp?.title,
-      difficultyId: songDetail?.difficulty.id,
-      difficulty: songDetail?.difficulty.musicDifficulty as any,
-      level: songDetail?.difficulty.playLevel,
+      difficultyId: songDetail?.difficulty?.id,
+      difficulty: songDetail?.difficulty?.musicDifficulty as any,
+      level: songDetail?.difficulty?.playLevel,
     },
   };
 }

@@ -7,6 +7,7 @@
 
   let { children, data } = $props();
 
+  // TODO: move this to settings
   const showEnName = new PersistedState("showEnName", true);
 
   let searchValue = $state("");
