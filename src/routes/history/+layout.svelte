@@ -53,14 +53,17 @@
 
     <div class="flex flex-col">
       {#each songs as song, i}
+        {@const selected = song.id.toString() === page.params.song}
         <a
           href="/history/{song.id}"
-          class="flex flex-col hover:underline px-2 py-1"
+          class="flex flex-col hover:underline px-2.5 py-1 {selected
+            ? 'bg-teal-500/7 text-teal-700'
+            : ''}"
         >
           <span>
             {song.title}
           </span>
-          <span class="text-lg opacity-65">
+          <span class="text-sm opacity-65">
             {song.composer}
           </span>
         </a>

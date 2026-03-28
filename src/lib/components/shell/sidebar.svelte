@@ -24,9 +24,9 @@
 
 <nav class="sm:hidden z-20 fixed top-4 left-4 backdrop-blur-lg border border-neutral-500/20">
   <details>
-    <summary> Menu </summary>
+    <summary class="py-1 px-2"> Menu </summary>
 
-    <section class="flex-1 flex flex-col justify-between pb-4">
+    <section class="flex-1 flex flex-col justify-between">
       <div class="flex flex-col">
         <a class="px-4 py-1 hover:underline" href="/">Home</a>
         <a class="px-4 py-1 hover:underline" href="/history">Play History</a>

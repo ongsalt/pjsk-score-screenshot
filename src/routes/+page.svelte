@@ -63,7 +63,7 @@
 <main class="px-6 pt-4 space-y-2">
   <FilesUploader state={filesUploaderState} />
 
-  <Section label="Settings">
+  <Section>
     <label>
       ocr engine
       <select bind:value={model.current}>
@@ -74,6 +74,14 @@
         warning: tesseract is free and can be run locally, gemini is not but it
         give better result.
       </p>
+      {#if model.current === "gemini" && preferences.geminiApiKey === ""}
+        <p>
+          No gemini api key. You can enter it in the <a
+            href="/settings"
+            class="underline underline-offset-2 text-teal-500">Settings</a
+          > page
+        </p>
+      {/if}
       <p>note: pls bring your own key</p>
     </label>
   </Section>
