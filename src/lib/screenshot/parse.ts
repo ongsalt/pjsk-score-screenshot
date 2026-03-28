@@ -26,7 +26,7 @@ export interface ParseResult {
   good?: number;
   bad?: number;
   miss?: number;
-  noteCount?: number
+  noteCount?: number;
 
   late?: number;
   early?: number; // in jp this say "fast"
@@ -60,7 +60,7 @@ export function parseResult(
     ...judgements,
     ...lateEarly,
     song: {
-      name: songDetail
+      name: songDetail,
       // id: map(songDetail?.song, songId) ?? undefined,
       // name: songDetail?.song?.en?.title ?? songDetail?.song?.jp?.title,
       // difficultyId: songDetail?.difficulty?.id,
@@ -73,12 +73,15 @@ export function parseResult(
 function parseJudgement(recognizedResult: RecognizeResult) {
   const blocks = recognizedResult.blocks;
 
-  const groups = cluster(blocks, (it) => it.bounds.x0);
+  const groups = cluster(blocks, (it) => it.bounds.x0, 35);
   // console.log(groups);
 
   // there is only 2 group with the same x that contain more than 3 element
   // ["score", "highscore", ...judgementList] and [diffName, ...count]
   const secondGroup = groups.filter((it) => it.length > 3)[1];
+  if (groups.length < 2) {
+  }
+  console.log(groups);
   const onlyLast5 = takeLastN(secondGroup, 5);
   secondGroup.length === 5 ? secondGroup : secondGroup.slice(-5, -1);
   const [prefect, great, good, bad, miss] = onlyLast5
@@ -109,20 +112,36 @@ function parseLateEarly(
     return Math.sqrt((bounds.x1 - x) ** 2 + (bounds.y1 - y) ** 2);
   }
 
-  // 3 closest number from bottom center
+  function removeNonInt() {
+
+  }
+
+  // 4 closest number from bottom center
+  // removing those with text "flick" or "wrong way"
   const candidates = blocks
-    .filter((it) => !isNaN(parseInt(it.text.trim())))
+    // .filter((it) => !isNaN(parseInt(it.text.trim())))
+    .filter(
+      (it) =>
+        !it.text.toLowerCase().includes("flick") &&
+        !it.text.toLowerCase().includes("wrong"),
+    )
     .map((it) => ({ ...it, distance: distance(it.bounds) }))
-    .toSorted((a, b) => a.distance - b.distance);
+    .toSorted((a, b) => a.distance - b.distance)
+    .slice(0, 3)
+    .map(it => it.text.trim())
+    .map(it => it.replace(/\D/g, '')) // match every char
+    .map(it => parseInt(it)) // match every char
 
-  console.log(candidates.map((it) => it.text.trim()));
+  console.log(candidates);
 
-  return {};
+  return {
+    late: candidates[1],
+    early: candidates[2],
+    wrongWay: candidates[0],
+  };
 }
 
-function parseSongDetail(
-  recognizedResult: RecognizeResult,
-) {
+function parseSongDetail(recognizedResult: RecognizeResult) {
   const name = recognizedResult.blocks[0].text.trim();
 
   // lv and difficulty is around here, but its sometime cannot be parsed
@@ -132,7 +151,7 @@ function parseSongDetail(
 function cluster<T>(
   items: T[],
   by: (item: T) => number,
-  threshold: number = 4,
+  threshold: number = 14,
 ) {
   const groups: T[][] = [];
 

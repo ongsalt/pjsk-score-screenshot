@@ -56,8 +56,9 @@ export async function preprocessImage(
     throw new Error("Failed to create canvas context.");
   }
 
+  // context.filter = "contrast(200%)";
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
+  
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
 
@@ -66,8 +67,12 @@ export async function preprocessImage(
     const g = pixels[i + 1] ?? 0;
     const b = pixels[i + 2] ?? 0;
 
-    const grayscale = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
-    const value = grayscale > merged.threshold ? 255 : 0;
+    // NOT perceive brightness
+    const grayscale = Math.round(r * 0.318 + g * 0.602 + b * 0.080);
+    // let value = Math.max(0, grayscale - merged.threshold);
+    // value = (value / merged.threshold) * 255;
+    const value = grayscale < merged.threshold ? 0 : 255
+    // const value = grayscale
 
     pixels[i] = value;
     pixels[i + 1] = value;
@@ -75,5 +80,7 @@ export async function preprocessImage(
   }
 
   context.putImageData(imageData, 0, 0);
+  document.getElementById("canvas-host")?.appendChild(canvas);
+
   return canvas;
 }

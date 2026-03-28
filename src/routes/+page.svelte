@@ -26,7 +26,7 @@
 
   const filesUploaderState = new FilesUploaderState();
 
-  let result: any = $state(null);
+  let jsonDisplay: any = $state(null);
 
   const songRepository = $derived(data.songRepository);
   const model = new PersistedState("preferredModel", "gemini");
@@ -45,7 +45,7 @@
     // const metadata = await ExifReader.load(image)
 
     if (model.current == "gemini") {
-      result = JSON.parse(
+      jsonDisplay = JSON.parse(
         (await geminiFuckingDoYourJob(preferences.geminiApiKey, image)).text ??
           "",
       );
@@ -56,7 +56,7 @@
         parsed.song.name!,
         parsed.noteCount!,
       );
-      result = [chart, parsed, r];
+      jsonDisplay = [chart, parsed, r];
     }
   }
 </script>
@@ -64,6 +64,9 @@
 <TopInset />
 <main class="px-6 pt-4 space-y-2">
   <FilesUploader state={filesUploaderState} />
+
+  <!-- <div class="border" id="canvas-host" >
+  </div> -->
 
   <Section>
     <label>
@@ -91,6 +94,6 @@
   <button class="border" onclick={start}>start</button>
 
   <div class="prose">
-    <pre>{JSON.stringify(result, null, 2)}</pre>
+    <pre>{JSON.stringify(jsonDisplay, null, 2)}</pre>
   </div>
 </main>
