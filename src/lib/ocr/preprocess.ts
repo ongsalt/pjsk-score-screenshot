@@ -1,6 +1,8 @@
-import { normalizeText } from "./normalize";
+// import { normalizeText } from "./normalize";
 
-type ImageSource = string | Blob | Buffer | HTMLImageElement;
+// browser onlyyyyy
+
+type ImageSource = string | Blob | HTMLImageElement;
 
 interface PreprocessOptions {
   scale: number;
@@ -74,8 +76,4 @@ export async function preprocessImage(
 
   context.putImageData(imageData, 0, 0);
   return canvas;
-}
-
-export function sanitizeRawText(input: string): string {
-  return normalizeText(input).replace(/\n{3,}/g, "\n\n");
 }

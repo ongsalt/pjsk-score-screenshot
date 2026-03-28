@@ -1,7 +1,7 @@
 // https://sekai-world.github.io/sekai-master-db-diff/musics.json
 
 import { queryOptions } from "@tanstack/svelte-query";
-import { Index } from "flexsearch";
+import { Charset, Encoder, Index } from "flexsearch";
 import { SvelteMap } from "svelte/reactivity";
 
 export type ApiSong = {
@@ -109,7 +109,10 @@ export class SongRepository {
   loading = $state(true);
 
   #songNameIndex = $derived.by(() => {
-    const index = new Index();
+    const index = new Index({
+      // tokenize: "tolerant",
+      // encoder: new Encoder(Charset.Normalize)
+    });
     for (const song of this.songs) {
       const text = [song.en?.title, song.jp?.title]
         .filter((it) => it != undefined)
@@ -154,7 +157,9 @@ export class SongRepository {
   // TODO: we cant infer note count reliably because hold note miss info is no where to be found
   // wait is this true, or does it register as Great insteaad
   matchChart(name: string, noteCount: number) {
-    const matched = this.#songNameIndex.search(name);
+    const matched = this.#songNameIndex.search(name, {
+      suggest: true,
+    });
     const id = matched.at(0);
     if (!id) {
       return;

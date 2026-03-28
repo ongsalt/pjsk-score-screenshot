@@ -1,6 +1,5 @@
-import { grayscale, PhotonImage, threshold } from "@silvia-odwyer/photon";
-import initPhoton from "@silvia-odwyer/photon";
-import wasmUrl from "@silvia-odwyer/photon/photon_rs_bg.wasm?url";
+import { preprocessImage } from "$lib/ocr/preprocess";
+import { grayscale } from "@silvia-odwyer/photon";
 import Tesseract, { type Bbox } from "tesseract.js";
 
 export class OCRWorker {
@@ -34,11 +33,11 @@ export class OCRWorker {
     // // threshold(photonImage, 142);
     // const buffer = photonImage.get_bytes();
     // const imageInput = new Blob([buffer as any], { type: "image/png" });
+    // const imageInput = source
 
-    // const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
-    // const imageInput = usePreprocess ? await preprocessImage(source) : source;
-    const imageInput = source
-
+    const parsedOptions: RecognizeOptions = { ...DEFAULT_OPTIONS, ...options };
+    // probably gonna need canvas polyfill for node
+    const imageInput = await preprocessImage(source as Blob);
     const recognized = await this.#worker!.recognize(
       imageInput,
       {},
