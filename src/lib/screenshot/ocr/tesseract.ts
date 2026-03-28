@@ -1,4 +1,4 @@
-import { preprocessImage } from "$lib/ocr/preprocess";
+import { preprocessImage } from "$lib/screenshot/preprocess";
 import { grayscale } from "@silvia-odwyer/photon";
 import Tesseract, { type Bbox } from "tesseract.js";
 
