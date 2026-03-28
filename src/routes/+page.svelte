@@ -56,7 +56,7 @@
         parsed.song.name!,
         parsed.noteCount!,
       );
-      jsonDisplay = [chart, parsed, r];
+      jsonDisplay = [parsed, chart, r];
     }
   }
 </script>

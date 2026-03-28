@@ -1,19 +1,25 @@
 <script lang="ts">
   import { page } from "$app/state";
   import TopInset from "$lib/components/shell/top-inset.svelte";
+  import {
+    getPlayRecordByChartId,
+    hasPlayedSong,
+  } from "$lib/data/play-record.svelte.js";
   import { songId, type Song } from "$lib/data/song.svelte.js";
   import { Index } from "flexsearch";
-  import { PersistedState, Throttled } from "runed";
+  import { PersistedState } from "runed";
 
   let { children, data } = $props();
 
   // TODO: move this to settings
   const showEnName = new PersistedState("showEnName", true);
+  const filterOnlyPlayed = new PersistedState("filterOnlyPlayed", false);
+
   let searchValue = $state("");
 
   const index = $derived.by(() => {
     const index = new Index({
-      tokenize: "bidirectional"
+      tokenize: "bidirectional",
     });
     for (const song of data.songRepository.songs) {
       const text = [
@@ -38,12 +44,20 @@
 
   const matched = $derived.by(() => {
     if (searchValue === "") {
-      return data.songRepository.songs.values();
+      return data.songRepository.songs;
     } else {
       return index
         .search(searchValue)
         .map((id) => data.songRepository.songsById.get(id as number)!);
     }
+  });
+
+  const filtered = $derived.by(() => {
+    if (!filterOnlyPlayed.current) {
+      return matched;
+    }
+
+    return matched.filter((it) => hasPlayedSong(songId(it)));
   });
 
   const isRoot = $derived(page.route.id === "/history");
@@ -79,7 +93,7 @@
         placeholder="Search"
       />
       <label>
-        <input type="checkbox" />
+        <input type="checkbox" bind:checked={filterOnlyPlayed.current} />
         only played
       </label>
 
@@ -98,7 +112,7 @@
     </div>
 
     <div class="flex flex-col">
-      {#each matched as song, i}
+      {#each filtered as song, i}
         {@const selected = songId(song).toString() === page.params.song}
         <a
           href="/history/{songId(song)}"

@@ -1,7 +1,7 @@
 // https://sekai-world.github.io/sekai-master-db-diff/musics.json
 
 import { queryOptions } from "@tanstack/svelte-query";
-import { Charset, Encoder, Index } from "flexsearch";
+import { Index } from "flexsearch";
 import { SvelteMap } from "svelte/reactivity";
 
 export type ApiSong = {
@@ -64,7 +64,7 @@ export async function fetchSongs(): Promise<
   // chu future express doesnt exist in jp
   // TODO: server exclusive song
 
-  const [jpSongs, jpDifficulties, enSongs] = (await Promise.all([
+  const [jpSongs, jpDifficulties, enSongs, enDifficulties] = (await Promise.all([
     res1.json(),
     res2.json(),
     res3.json(),
@@ -89,6 +89,7 @@ export async function fetchSongs(): Promise<
     }
   }
 
+  // TODO: merge this with en, songs gonna get append chart on one server before other
   const difficulties = new Map(jpDifficulties.map((it) => [it.id, it]));
 
   return [songs, difficulties];
@@ -107,6 +108,7 @@ export class SongRepository {
   songsById = new SvelteMap<number, Song>();
   difficulties = new SvelteMap<number, Difficulty>();
   loading = $state(true);
+  ready: Promise<any>;
 
   #songNameIndex = $derived.by(() => {
     const index = new Index({
@@ -124,7 +126,6 @@ export class SongRepository {
     return index;
   });
 
-  ready: Promise<any>;
 
   constructor() {
     this.ready = this.refetch();
@@ -171,8 +172,8 @@ export class SongRepository {
       .find((it) => it.totalNoteCount === noteCount);
 
     return {
-      song: this.songsById.get(id as number),
       difficulty,
+      song: this.songsById.get(id as number),
     };
   }
 }
