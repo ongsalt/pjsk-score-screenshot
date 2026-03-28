@@ -1,3 +1,9 @@
+<script lang="ts">
+  import TopInset from "$lib/components/shell/top-inset.svelte";
+
+</script>
+
+<TopInset />
 <main>
   <div class="prose p-4">
     <h2>About</h2>

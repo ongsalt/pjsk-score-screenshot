@@ -20,20 +20,21 @@
 </script>
 
 <script lang="ts">
+  import Section from "./section.svelte";
+
   interface Props {
     state?: FilesUploaderState;
   }
   const { state: s = new FilesUploaderState() }: Props = $props();
 </script>
 
-<div class="border">
-  <h2>Upload images</h2>
+<Section label="Upload images">
   <label>
     <input type="file" accept="image/*" onchange={s.onFileChange} />
     <span class="text-blue-600"> Select screenshot </span>
   </label>
   <p>or drag and drop here</p>
-</div>
+</Section>
 
 <div>
   {#each s.previewUrls as previewUrl}

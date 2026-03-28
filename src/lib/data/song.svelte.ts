@@ -64,8 +64,10 @@ export class SongRepository {
   difficulties: Difficulty[] = $state([]);
   loading = $state(true);
 
+  ready: Promise<any>;
+
   constructor() {
-    this.refetch();
+    this.ready = this.refetch();
   }
 
   async refetch() {
@@ -110,7 +112,7 @@ export class SongRepository {
     }
 
     const fuse = new Fuse(candidates, {
-      keys: ["song.title"]
+      keys: ["song.title"],
     });
     const matched = fuse.search(name);
 

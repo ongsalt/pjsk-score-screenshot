@@ -1,11 +1,14 @@
 <script>
+  import { page } from "$app/state";
+  import TopInset from "$lib/components/shell/top-inset.svelte";
+
   let { children, data } = $props();
 
   let searchValue = $state("");
   let lowerCasedSearchValue = $derived(searchValue.toLowerCase().trim());
   // TODO: better search, en name
   const songs = $derived(
-    data.songs.filter(
+    data.songRepository.songs.filter(
       (it) =>
         it.arranger.toLowerCase().includes(lowerCasedSearchValue) ||
         it.composer.toLowerCase().includes(lowerCasedSearchValue) ||
@@ -15,11 +18,19 @@
         it.id.toString() === lowerCasedSearchValue,
     ),
   );
+
+  const isRoot = $derived(page.route.id === "/history");
+
+  //TODO: loading
 </script>
 
 <main class="flex h-screen">
-  <section class="border-r overflow-scroll w-72">
+  <section
+    class="md:border-r max-md:flex-1 overflow-scroll w-72"
+    class:max-md:hidden={!isRoot}
+  >
     <div class="border-b p-1 sticky z-10 top-0 flex flex-col backdrop-blur-xl">
+      <TopInset />
       <input
         type="text"
         bind:value={searchValue}
@@ -49,22 +60,20 @@
           <span>
             {song.title}
           </span>
-          <span class="text-sm opacity-65">
+          <span class="text-lg opacity-65">
             {song.composer}
           </span>
         </a>
       {:else}
         <div class="flex flex-col items-center w-full py-6">
-          <span class="opacity-65 font-mono text-lg">
-            (*￣3￣)╭
-          </span>
-          <span class="text-sm  mt-2">No results</span>
+          <span class="opacity-65 font-mono text-lg"> (*￣3￣)╭ </span>
+          <span class="text-sm mt-2">No results</span>
         </div>
       {/each}
     </div>
   </section>
 
-  <section class="overflow-y-scroll flex-1">
+  <section class="overflow-y-scroll flex-1" class:max-md:hidden={isRoot}>
     {@render children?.()}
   </section>
 </main>

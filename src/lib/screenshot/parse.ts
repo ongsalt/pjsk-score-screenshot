@@ -109,9 +109,9 @@ function parseLateEarly(
     .map((it) => ({ ...it, distance: distance(it.bounds) }))
     .toSorted((a, b) => a.distance - b.distance);
 
-  console.log(candidates.map(it => it.text.trim()))
+  console.log(candidates.map((it) => it.text.trim()));
 
-  return {  };
+  return {};
 }
 
 function parseSongDetail(

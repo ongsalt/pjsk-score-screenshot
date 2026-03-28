@@ -8,6 +8,8 @@
   import { parseResult } from "$lib/screenshot/parse";
   import { PersistedState } from "runed";
   import ExifReader from "exifreader";
+  import Section from "$lib/components/section.svelte";
+  import TopInset from "$lib/components/shell/top-inset.svelte";
 
   let { data } = $props();
 
@@ -37,8 +39,8 @@
     }
 
     // wtf is this shi
-    const i = new Image()
-    i.src = filesUploaderState.previewUrls[0]!
+    const i = new Image();
+    i.src = filesUploaderState.previewUrls[0]!;
 
     // const metadata = await ExifReader.load(image)
 
@@ -49,15 +51,19 @@
       );
     } else {
       const r = await engine.recognize(image);
-      result = [parseResult(r, i.naturalWidth, i.naturalHeight, songRepository), r];
+      result = [
+        parseResult(r, i.naturalWidth, i.naturalHeight, songRepository),
+        r,
+      ];
     }
   }
 </script>
 
+<TopInset />
 <main class="px-6 pt-4 space-y-2">
   <FilesUploader state={filesUploaderState} />
-  <div class="border">
-    <h2>Settings</h2>
+
+  <Section label="Settings">
     <label>
       ocr engine
       <select bind:value={model.current}>
@@ -70,7 +76,7 @@
       </p>
       <p>note: pls bring your own key</p>
     </label>
-  </div>
+  </Section>
 
   <button class="border" onclick={start}>start</button>
 

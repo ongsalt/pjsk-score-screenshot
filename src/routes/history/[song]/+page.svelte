@@ -1,9 +1,12 @@
 <script lang="ts">
+  import TopInset from "$lib/components/shell/top-inset.svelte";
+
   let { data } = $props();
 
   const diffNames = ["Easy", "Normal", "Hard", "Expert", "Master", "Append"];
 </script>
 
+<TopInset />
 <main class="p-4">
   <h2 class="text-2xl">
     {data.detail.song.title}
