@@ -9,12 +9,7 @@
 
   // TODO: move this to settings
   const showEnName = new PersistedState("showEnName", true);
-
   let searchValue = $state("");
-  const lowerCasedSearchValue = new Throttled(
-    () => searchValue.toLowerCase().trim(),
-    200,
-  );
 
   const index = $derived.by(() => {
     const index = new Index({

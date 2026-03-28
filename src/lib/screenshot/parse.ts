@@ -20,11 +20,13 @@ export interface ParseResult {
   highScore?: number;
   maxCombo?: number;
 
+  // this shit should never be optional, but who know
   perfect?: number;
   great?: number;
   good?: number;
   bad?: number;
   miss?: number;
+  noteCount?: number
 
   late?: number;
   early?: number; // in jp this say "fast"
@@ -43,14 +45,13 @@ export function parseResult(
   recognizedResult: RecognizeResult,
   width: number,
   height: number,
-  songRepository: SongRepository,
   boundingLines: BoundingLines = DEFAULT_BOUNDING_LINE, // TODO: calculate this
 ): ParseResult {
   const judgements = parseJudgement(recognizedResult);
   const songDetail = parseSongDetail(
     recognizedResult,
-    songRepository,
-    judgements.noteCount,
+    // songRepository,
+    // judgements.noteCount,
   );
 
   const lateEarly = parseLateEarly(recognizedResult, width, height);
@@ -59,11 +60,12 @@ export function parseResult(
     ...judgements,
     ...lateEarly,
     song: {
-      id: map(songDetail?.song, songId) ?? undefined,
-      name: songDetail?.song?.en?.title ?? songDetail?.song?.jp?.title,
-      difficultyId: songDetail?.difficulty?.id,
-      difficulty: songDetail?.difficulty?.musicDifficulty as any,
-      level: songDetail?.difficulty?.playLevel,
+      name: songDetail
+      // id: map(songDetail?.song, songId) ?? undefined,
+      // name: songDetail?.song?.en?.title ?? songDetail?.song?.jp?.title,
+      // difficultyId: songDetail?.difficulty?.id,
+      // difficulty: songDetail?.difficulty?.musicDifficulty as any,
+      // level: songDetail?.difficulty?.playLevel,
     },
   };
 }
@@ -120,14 +122,11 @@ function parseLateEarly(
 
 function parseSongDetail(
   recognizedResult: RecognizeResult,
-  songRepository: SongRepository,
-  noteCount: number,
 ) {
   const name = recognizedResult.blocks[0].text.trim();
-  const matched = songRepository.matchSong(name, noteCount);
 
   // lv and difficulty is around here, but its sometime cannot be parsed
-  return matched;
+  return name;
 }
 
 function cluster<T>(

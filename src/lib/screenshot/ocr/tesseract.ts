@@ -49,6 +49,7 @@ export class OCRWorker {
       blocks:
         recognized.data.blocks?.map((it) => ({
           bounds: it.bbox,
+          // unused
           normalizedBounds: normalize(1, 1, it.bbox),
           confidence: it.confidence,
           text: it.text,

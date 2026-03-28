@@ -111,12 +111,11 @@ export class SongRepository {
   #songNameIndex = $derived.by(() => {
     const index = new Index();
     for (const song of this.songs) {
-      const id = songId(song);
-      [song.en?.title, song.jp?.title]
+      const text = [song.en?.title, song.jp?.title]
         .filter((it) => it != undefined)
-        .forEach((name) => {
-          index.add(id, name);
-        });
+        .join(" ");
+      const id = songId(song);
+      index.add(id, text);
     }
 
     return index;
@@ -154,7 +153,7 @@ export class SongRepository {
 
   // TODO: we cant infer note count reliably because hold note miss info is no where to be found
   // wait is this true, or does it register as Great insteaad
-  matchSong(name: string, noteCount: number) {
+  matchChart(name: string, noteCount: number) {
     const matched = this.#songNameIndex.search(name);
     const id = matched.at(0);
     if (!id) {

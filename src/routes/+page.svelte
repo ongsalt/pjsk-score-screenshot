@@ -51,10 +51,12 @@
       );
     } else {
       const r = await engine.recognize(image);
-      result = [
-        parseResult(r, i.naturalWidth, i.naturalHeight, songRepository),
-        r,
-      ];
+      const parsed = parseResult(r, i.naturalWidth, i.naturalHeight);
+      const chart = songRepository.matchChart(
+        parsed.song.name!,
+        parsed.noteCount!,
+      );
+      result = [chart, parsed, r];
     }
   }
 </script>
