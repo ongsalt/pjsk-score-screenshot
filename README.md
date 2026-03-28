@@ -1,5 +1,5 @@
 
-# Features
+# Todo
 
 ## Extracting
 
@@ -13,8 +13,10 @@
 - ocr engine selector?
   - tesseract.js
   - fucking llm (no parsing needed, expensive af, best result)
-  - google cloud (same)
 - parsing?
 
 ## Store
 - sync?
+  - twitter login or someshi
+  - so we need a db somewhere
+  - just a json is enough

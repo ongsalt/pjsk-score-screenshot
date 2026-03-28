@@ -6,7 +6,10 @@
   let { children } = $props();
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+  <link rel="icon" href={favicon} />
+  <title>Sekaiiiii</title>
+</svelte:head>
 
 <div class="flex min-h-screen">
   <Sidebar />

@@ -11,6 +11,7 @@
       <a class="px-4 py-1 hover:underline" href="/stats">Stats</a>
     </div>
     <div class="flex flex-col">
+      <a class="px-4 py-1 hover:underline" href="/settings">Settings</a>
       <a class="px-4 py-1 hover:underline" href="/about">About</a>
     </div>
   </section>
