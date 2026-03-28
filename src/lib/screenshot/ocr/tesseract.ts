@@ -50,7 +50,7 @@ function hasDomCanvasSupport(): boolean {
   );
 }
 
-interface RecognizeResult {
+export interface RecognizeResult {
   blocks: Block[];
 }
 

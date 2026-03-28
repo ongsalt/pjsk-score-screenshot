@@ -1,40 +1,47 @@
 <script lang="ts">
-  import FilesUploader, { FilesUploaderState } from "$lib/components/files-uploader.svelte";
+  import FilesUploader, {
+    FilesUploaderState,
+  } from "$lib/components/files-uploader.svelte";
   import { preferences } from "$lib/preferences";
   import { geminiFuckingDoYourJob, toBase64 } from "$lib/screenshot/ocr/gemini";
   import { OCRWorker } from "$lib/screenshot/ocr/tesseract";
+  import { parseResult } from "$lib/screenshot/parse";
+  import { PersistedState } from "runed";
 
   // 0. select images
+  //    hash, remove duplicated
+  //  what if there is a result within 1 min of each other?
   // 1. normalize image format
-  // 2. apply filter
+  // 2. apply filter: greyscale
   // 3. with queue:
   //    - ocr (extract text) -> parse
   //    - or llm
   // 4. fill missing detail
   // 5. confirm
 
-  const filesUploaderState = new FilesUploaderState()
+  const filesUploaderState = new FilesUploaderState();
 
-  let result: any = $state(null)
-  let model = $state("gemini")
+  let result: any = $state(null);
 
-  const engine = new OCRWorker()
+  const model = new PersistedState("preferredModel", "gemini");
+  const engine = new OCRWorker();
 
   async function start() {
-    const image = filesUploaderState.files[0]
+    const image = filesUploaderState.files[0];
     if (!image) {
-      return
+      return;
     }
-    // 
-    console.log(await toBase64(image))
-
-    if (model == "gemini") {
-      result = JSON.parse((await geminiFuckingDoYourJob(preferences.geminiApiKey, image)).text ?? "")
+    
+    if (model.current == "gemini") {
+      result = JSON.parse(
+        (await geminiFuckingDoYourJob(preferences.geminiApiKey, image)).text ??
+          "",
+      );
     } else {
-      result = await engine.recognize(image)
+      const r = await engine.recognize(image);
+      result = [parseResult(r, 0, 0), r];
     }
   }
-
 </script>
 
 <main class="px-6 pt-4 space-y-2">
@@ -43,7 +50,7 @@
     <h2>Settings</h2>
     <label>
       ocr engine
-      <select bind:value={model}>
+      <select bind:value={model.current}>
         <option value="tesseract">Tesseract (local)</option>
         <option value="gemini">Gemini 3.1 Flash-Lite Preview</option>
       </select>

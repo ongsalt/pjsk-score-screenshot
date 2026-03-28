@@ -1,2 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+
+/* 
+* {
+  color-scheme: light dark;
+} */
