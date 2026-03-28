@@ -75,8 +75,6 @@
     }
     return song.jp?.composer ?? song.en?.composer;
   }
-
-  //TODO: loading
 </script>
 
 <main class="flex h-screen">

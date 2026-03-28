@@ -1,7 +1,10 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
-/* 
+
 * {
-  color-scheme: light dark;
-} */
+  /* teal-500 */
+  /* accent-color: oklch(70.4% 0.14 182.503); */
+  /* color-scheme: light dark; */
+}
+

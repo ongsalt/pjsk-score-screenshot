@@ -63,18 +63,34 @@
     <label>
       sort
       <select>
-        <option value="">Time</option>
-        <option value="">Score</option>
-        <option value="">Combo</option>
+        <option value="default">Default</option>
+        <option value="date">Date</option>
+        <option value="score">Score</option>
+        <option value="combo">Combo</option>
       </select>
     </label>
 
     <div class="space-y-1 mt-3">
       {#each records as record, i}
-        <div class="border py-2 px-4">
-          <span>
-            #{i + 1}
-          </span>
+        <div class="border py-2 px-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span>
+              #{i + 1}
+            </span>
+            <span>{record.result.scoreRank ?? "?"}</span>
+            <div>
+              <span>{record.result.score ?? "?"}</span>
+            </div>
+
+            <div class="border px-2 py-0.5 flex gap-3">
+              <span
+                >{record.result.perfect}/{record.result.great}/{record.result
+                  .good}/{record.result.bad}/{record.result.miss}</span
+              >
+            </div>
+          </div>
+
+          <span class="hover:underline underline-offset-2">menu</span>
         </div>
       {:else}
         <p>No record</p>

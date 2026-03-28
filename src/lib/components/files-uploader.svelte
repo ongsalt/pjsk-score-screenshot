@@ -30,7 +30,7 @@
 
 <Section label="Upload images">
   <label>
-    <input type="file" accept="image/*" onchange={s.onFileChange} />
+    <input type="file" multiple accept="image/*" onchange={s.onFileChange} />
     <span class="text-teal-500"> Select screenshot </span>
   </label>
   <p>or drag and drop here</p>

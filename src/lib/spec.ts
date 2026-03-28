@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const resultSchema = z.object({
   score: z.number(),
@@ -11,11 +11,9 @@ export const resultSchema = z.object({
   miss: z.number(),
   maxCombo: z.number(),
 
-  detail: z.object({
-    late: z.number(),
-    early: z.number(), // in jp this say "fast"
-    wrongWay: z.number(), // in jp this say "flick: ${number}"
-  }),
+  late: z.number(),
+  early: z.number(), // in jp this say "fast"
+  wrongWay: z.number(), // in jp this say "flick: ${number}"
 
   song: z.object({
     name: z.string(),
@@ -26,5 +24,4 @@ export const resultSchema = z.object({
 
 export type Result = z.infer<typeof resultSchema>;
 
-export type Difficulty = Result['song']['difficulty'];
-
+export type Difficulty = Result["song"]["difficulty"];

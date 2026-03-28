@@ -84,17 +84,17 @@ function parseJudgement(recognizedResult: RecognizeResult) {
   console.log(groups);
   const onlyLast5 = takeLastN(secondGroup, 5);
   secondGroup.length === 5 ? secondGroup : secondGroup.slice(-5, -1);
-  const [prefect, great, good, bad, miss] = onlyLast5
+  const [perfect, great, good, bad, miss] = onlyLast5
     .toSorted((a, b) => a.bounds.y0 - b.bounds.y0)
     .map((it) => parseInt(it.text.trim()));
 
   return {
-    prefect,
+    perfect,
     great,
     good,
     bad,
     miss,
-    noteCount: prefect + great + good + bad + miss,
+    noteCount: perfect + great + good + bad + miss,
   };
 }
 
