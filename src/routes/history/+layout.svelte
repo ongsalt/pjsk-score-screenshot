@@ -1,25 +1,64 @@
-<script>
+<script lang="ts">
   import { page } from "$app/state";
   import TopInset from "$lib/components/shell/top-inset.svelte";
+  import { songId, type Song } from "$lib/data/song.svelte.js";
+  import Fuse from "fuse.js";
+  import { PersistedState, Throttled } from "runed";
 
   let { children, data } = $props();
 
+  const showEnName = new PersistedState("showEnName", true);
+
   let searchValue = $state("");
-  let lowerCasedSearchValue = $derived(searchValue.toLowerCase().trim());
-  // TODO: better search, en name
-  const songs = $derived(
-    data.songRepository.songs.filter(
-      (it) =>
-        it.arranger.toLowerCase().includes(lowerCasedSearchValue) ||
-        it.composer.toLowerCase().includes(lowerCasedSearchValue) ||
-        it.lyricist.toLowerCase().includes(lowerCasedSearchValue) ||
-        it.title.toLowerCase().includes(lowerCasedSearchValue) ||
-        it.pronunciation.toLowerCase().includes(lowerCasedSearchValue) ||
-        it.id.toString() === lowerCasedSearchValue,
-    ),
+  const lowerCasedSearchValue = new Throttled(
+    () => searchValue.toLowerCase().trim(),
+    200,
   );
 
+  // TODO: better search
+  // fuse???
+  const fuse = $derived.by(() => {
+    console.log("rerun")
+    return new Fuse([...data.songRepository.songs.values()], {
+      keys: [
+        "jp.title",
+        "jp.pronunciation",
+        "jp.arranger",
+        "jp.composer",
+        "jp.lyricist",
+        "en.title",
+        "en.pronunciation",
+        "en.arranger",
+        "en.composer",
+        "en.lyricist",
+      ],
+    });
+  });
+
+  const matched = $derived.by(() => {
+    if (searchValue === "") {
+      return data.songRepository.songs.values();
+    } else {
+      return fuse.search(searchValue).map((it) => it.item);
+    }
+  });
+
   const isRoot = $derived(page.route.id === "/history");
+
+
+  function songTitle(song: Song) {
+    if (showEnName.current) {
+      return song.en?.title ?? song.jp?.title;
+    }
+    return song.jp?.title ?? song.en?.title;
+  }
+
+  function songComposer(song: Song) {
+    if (showEnName.current) {
+      return song.en?.composer ?? song.jp?.composer;
+    }
+    return song.jp?.composer ?? song.en?.composer;
+  }
 
   //TODO: loading
 </script>
@@ -41,6 +80,11 @@
         <input type="checkbox" />
         only played
       </label>
+
+      <label>
+        <input type="checkbox" bind:checked={showEnName.current} />
+        english name
+      </label>
       <label>
         sort
         <select name="" id="" class="border">
@@ -52,19 +96,19 @@
     </div>
 
     <div class="flex flex-col">
-      {#each songs as song, i}
-        {@const selected = song.id.toString() === page.params.song}
+      {#each matched as song, i}
+        {@const selected = songId(song).toString() === page.params.song}
         <a
-          href="/history/{song.id}"
+          href="/history/{songId(song)}"
           class="flex flex-col hover:underline px-2.5 py-1 {selected
             ? 'bg-teal-500/7 text-teal-700'
             : ''}"
         >
           <span>
-            {song.title}
+            {songTitle(song)}
           </span>
           <span class="text-sm opacity-65">
-            {song.composer}
+            {songComposer(song)}
           </span>
         </a>
       {:else}

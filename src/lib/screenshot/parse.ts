@@ -1,4 +1,4 @@
-import type { SongRepository } from "$lib/data/song.svelte";
+import { songId, type SongRepository } from "$lib/data/song.svelte";
 import { he } from "zod/locales";
 import type { RecognizeResult } from "./ocr/tesseract";
 
@@ -31,6 +31,8 @@ export interface ParseResult {
   wrongWay?: number; // in jp this say "flick: ${number}"
 
   song: {
+    id?: number;
+    difficultyId?: number;
     name?: string;
     difficulty?: "easy" | "normal" | "hard" | "master" | "append";
     level?: number;
@@ -57,9 +59,11 @@ export function parseResult(
     ...judgements,
     ...lateEarly,
     song: {
-      name: songDetail.song?.title,
-      difficulty: songDetail.difficulty.musicDifficulty as any,
-      level: songDetail.difficulty.playLevel,
+      id: map(songDetail?.song, songId) ?? undefined,
+      name: songDetail?.song?.en?.title ?? songDetail?.song?.jp?.title,
+      difficultyId: songDetail?.difficulty.id,
+      difficulty: songDetail?.difficulty.musicDifficulty as any,
+      level: songDetail?.difficulty.playLevel,
     },
   };
 }

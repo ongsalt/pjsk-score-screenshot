@@ -2,8 +2,9 @@
 
 import { queryOptions } from "@tanstack/svelte-query";
 import Fuse from "fuse.js";
+import { SvelteMap } from "svelte/reactivity";
 
-export type Song = {
+export type ApiSong = {
   id: number;
   seq: number;
   releaseConditionId: number;
@@ -26,6 +27,12 @@ export type Song = {
   isFullLength: boolean;
 };
 
+export type Song = {
+  jp?: ApiSong;
+  en?: ApiSong;
+  // cn?: ApiSong;
+};
+
 export type Difficulty = {
   id: number;
   musicId: number;
@@ -34,7 +41,9 @@ export type Difficulty = {
   totalNoteCount: number;
 };
 
-export async function fetchSongs() {
+export async function fetchSongs(): Promise<
+  [Map<number, Song>, Map<number, Difficulty>]
+> {
   // TODO: error handling, caching and invalidation
   const res1 = await fetch(
     "https://sekai-world.github.io/sekai-master-db-diff/musics.json",
@@ -44,10 +53,46 @@ export async function fetchSongs() {
     "https://sekai-world.github.io/sekai-master-db-diff/musicDifficulties.json",
   );
 
-  return (await Promise.all([res1.json(), res2.json()])) as [
-    Song[],
-    Difficulty[],
-  ];
+  const res3 = await fetch(
+    "https://sekai-world.github.io/sekai-master-db-en-diff/musics.json",
+  );
+
+  const res4 = await fetch(
+    "https://sekai-world.github.io/sekai-master-db-en-diff/musicDifficulties.json",
+  );
+
+  // chu future express doesnt exist in jp
+  // TODO: server exclusive song
+
+  const [jpSongs, jpDifficulties, enSongs] = (await Promise.all([
+    res1.json(),
+    res2.json(),
+    res3.json(),
+    res4.json(),
+  ])) as [ApiSong[], Difficulty[], ApiSong[], Difficulty[]];
+
+  const songs = new Map<number, Song>();
+  for (const song of enSongs) {
+    songs.set(song.id, {
+      en: song,
+    });
+  }
+
+  for (const song of jpSongs) {
+    const existing = songs.get(song.id);
+    if (existing) {
+      existing.jp = song;
+    } else {
+      songs.set(song.id, {
+        jp: song,
+      });
+    }
+  }
+  
+  const difficulties = new Map(jpDifficulties.map((it) => [it.musicId, it]));
+  
+
+  return [songs, difficulties];
 }
 
 const fetchSongsOptions = queryOptions({
@@ -60,8 +105,8 @@ const fetchSongsOptions = queryOptions({
 
 export class SongRepository {
   songs: Song[] = $state([]);
-  songsById = new Map<number, Song>();
-  difficulties: Difficulty[] = $state([]);
+  songsById = new SvelteMap<number, Song>();
+  difficulties = new SvelteMap<number, Difficulty>();
   loading = $state(true);
 
   ready: Promise<any>;
@@ -73,49 +118,47 @@ export class SongRepository {
   async refetch() {
     this.loading = true;
     // TODO: index by id
-    [this.songs, this.difficulties] = await fetchSongs();
-    for (const s of this.songs) {
-      this.songsById.set(s.id, s);
-    }
+    const res = await fetchSongs();
+    this.songs = [...res[0].values()];
+    this.songsById = new SvelteMap(res[0]);
+    this.difficulties = new SvelteMap(res[1]);
     this.loading = false;
   }
 
   getSongDetail(id: number) {
     const song = this.songsById.get(id);
-
     if (!song) {
       return undefined;
     }
 
-    const diff = this.difficulties!.filter((it) => it.musicId == id);
-
+    const diff = this.difficulties.get(id)!;
     return {
       song,
       difficulties: diff,
     };
   }
 
+  // TODO: we cant infer note count reliably because hold note miss info is no where to be found
   matchSong(name: string, noteCount: number) {
-    const filtered = this.difficulties.filter(
-      (it) => it.totalNoteCount === noteCount,
-    );
+    const filtered = this.difficulties
+      .values()
+      // .filter((it) => it.totalNoteCount >= noteCount - 10 && it.totalNoteCount <= noteCount + 10);
 
     const candidates = filtered.map((it) => ({
       difficulty: it,
       song: this.songsById.get(it.musicId),
-    }));
+    })).toArray();
 
-    // exact match
-    const f = candidates.find((it) => it.song?.title === name);
-    if (f) {
-      return f;
-    }
-
+    console.log({ candidates });
     const fuse = new Fuse(candidates, {
-      keys: ["song.title"],
+      keys: ["song.jp.title", "song.en.title"],
     });
-    const matched = fuse.search(name);
 
-    return matched[0].item;
+    const matched = fuse.search(name);
+    return matched.at(0)?.item;
   }
+}
+
+export function songId(song: Song) {
+  return (song.en?.id ?? song.jp?.id)!;
 }
