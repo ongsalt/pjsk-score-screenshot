@@ -8,39 +8,16 @@
   import { songId, type Song } from "$lib/data/song.svelte.js";
   import { Index } from "flexsearch";
   import { PersistedState } from "runed";
+  import { da } from "zod/locales";
 
   let { children, data } = $props();
-
+  const index = $derived(data.songRepository.textSearchIndex);
+  
   // TODO: move this to settings
   const showEnName = new PersistedState("showEnName", true);
   const filterOnlyPlayed = new PersistedState("filterOnlyPlayed", false);
 
   let searchValue = $state("");
-
-  const index = $derived.by(() => {
-    const index = new Index({
-      tokenize: "bidirectional",
-    });
-    for (const song of data.songRepository.songs) {
-      const text = [
-        song.jp?.title,
-        song.jp?.pronunciation,
-        song.jp?.arranger,
-        song.jp?.composer,
-        song.jp?.lyricist,
-        song.en?.title,
-        song.en?.pronunciation,
-        song.en?.arranger,
-        song.en?.composer,
-        song.en?.lyricist,
-      ]
-        .filter((it) => it != undefined)
-        .join(" ");
-      index.add(songId(song), text);
-    }
-
-    return index;
-  });
 
   const matched = $derived.by(() => {
     if (searchValue === "") {

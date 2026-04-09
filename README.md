@@ -1,5 +1,14 @@
 
 # Todo
+- lazy loading tesseract
+- show loading screen `/history`
+- input score manually 
+- score crud ops
+- better localization/data source merging
+- sync?
+  - twitter login or someshi
+  - so we need a db somewhere
+  - just a json is enough
 
 ## Extracting
 
@@ -14,9 +23,3 @@
   - tesseract.js
   - fucking llm (no parsing needed, expensive af, best result)
 - parsing?
-
-## Store
-- sync?
-  - twitter login or someshi
-  - so we need a db somewhere
-  - just a json is enough

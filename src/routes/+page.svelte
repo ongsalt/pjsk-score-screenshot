@@ -6,6 +6,7 @@
   import TopInset from "$lib/components/shell/top-inset.svelte";
   import { addPlayRecord } from "$lib/data/play-record.svelte.js";
   import { songId } from "$lib/data/song.svelte.js";
+  import { queues } from "$lib/globals.svelte.js";
   import { preferences } from "$lib/preferences";
   import { geminiFuckingDoYourJob } from "$lib/screenshot/ocr/gemini";
   import { OCRWorker } from "$lib/screenshot/ocr/tesseract";
@@ -62,14 +63,14 @@
             parsed.noteCount!,
           );
 
-          // TODO: ask user to fill missing detail 
+          // TODO: ask user to fill missing detail
           // TODO: notify potential duplicate score with settings
           addPlayRecord({
             chartId: chart!.difficulty!.id,
             songId: songId(chart!.song!),
             playedAt: 0, // TODO: get metadata
             result: {
-              ...parsed
+              ...parsed,
             },
           });
           jsonDisplay = [parsed, chart, r];
@@ -78,8 +79,10 @@
       });
     });
 
-    await queue.wait()
-    jsonDisplay = "Done processing. see `History` page"
+    queues.push(queue);
+    await queue.wait();
+    // Remove???
+    jsonDisplay = "Done processing. see `History` page";
   }
 </script>
 
@@ -112,6 +115,10 @@
       <p>note: pls bring your own key</p>
     </label>
   </Section>
+
+  <p>
+    `playedAt` is from file metadata
+  </p>
 
   <button class="border" onclick={start}>start</button>
 

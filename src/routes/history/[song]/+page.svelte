@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DifficultySelector from "$lib/components/difficulty-selector.svelte";
   import TopInset from "$lib/components/shell/top-inset.svelte";
   import { getPlayRecordByChartId } from "$lib/data/play-record.svelte.js";
   import { PersistedState } from "runed";
@@ -23,7 +24,6 @@
     ),
   );
 
-  const diffNames = ["Easy", "Normal", "Hard", "Expert", "Master", "Append"];
   const records = $derived(chart ? getPlayRecordByChartId(chart?.id) : []);
 </script>
 
@@ -36,27 +36,10 @@
     {song.en?.composer ?? song.jp?.composer}
   </p>
 
-  <div class="flex gap-2 mt-4">
-    {#each data.detail.difficulties as diff, index}
-      {@const selected = selectedDifficulty.current === diff.musicDifficulty}
-      {#if index == 5}
-        <div class="border-r mx-1"></div>
-      {/if}
-      <button
-        class="flex w-10 flex-col items-center cursor-pointer"
-        class:text-teal-500={selected}
-        onclick={() => (selectedDifficulty.current = diff.musicDifficulty)}
-      >
-        <div
-          class="size-9 text-lg rounded-full border flex items-center justify-center"
-          class:border-teal-500={selected}
-        >
-          {diff.playLevel}
-        </div>
-        <span class="text-sm">{diffNames?.[index] ?? "Unknown"}</span>
-      </button>
-    {/each}
-  </div>
+  <DifficultySelector
+    difficulties={data.detail.difficulties}
+    bind:selectedDifficulty={selectedDifficulty.current}
+  />
 
   <div class="mt-3">
     <h3>Record</h3>

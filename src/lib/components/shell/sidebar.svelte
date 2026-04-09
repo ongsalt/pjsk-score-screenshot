@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { queues } from "$lib/globals.svelte";
 </script>
 
 <nav
@@ -16,13 +17,19 @@
       <a class="px-4 py-1 hover:underline" href="/stats">Stats</a>
     </div>
     <div class="flex flex-col">
+      <!-- review next? -->
+      {#if queues.length > 0}
+        <div class="mx-4 border px-1 py-0.5">{queues[0].completed}/{queues[0].size} done</div>
+      {/if}
       <a class="px-4 py-1 hover:underline" href="/settings">Settings</a>
       <a class="px-4 py-1 hover:underline" href="/about">About</a>
     </div>
   </section>
 </nav>
 
-<nav class="sm:hidden z-20 fixed top-4 left-4 backdrop-blur-lg border border-neutral-500/20">
+<nav
+  class="sm:hidden z-20 fixed top-4 left-4 backdrop-blur-lg border border-neutral-500/20"
+>
   <details>
     <summary class="py-1 px-2"> Menu </summary>
 
@@ -33,6 +40,7 @@
         <a class="px-4 py-1 hover:underline" href="/stats">Stats</a>
       </div>
       <div class="flex flex-col">
+        <!-- TODO: mobile ui -->
         <a class="px-4 py-1 hover:underline" href="/settings">Settings</a>
         <a class="px-4 py-1 hover:underline" href="/about">About</a>
       </div>

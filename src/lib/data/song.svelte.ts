@@ -41,6 +41,8 @@ export type Difficulty = {
   totalNoteCount: number;
 };
 
+
+// TODO: pull `sekai-i18n/en/music_titles.json` too
 export async function fetchSongs(): Promise<
   [Map<number, Song>, Map<number, Difficulty>]
 > {
@@ -64,12 +66,9 @@ export async function fetchSongs(): Promise<
   // chu future express doesnt exist in jp
   // TODO: server exclusive song
 
-  const [jpSongs, jpDifficulties, enSongs, enDifficulties] = (await Promise.all([
-    res1.json(),
-    res2.json(),
-    res3.json(),
-    res4.json(),
-  ])) as [ApiSong[], Difficulty[], ApiSong[], Difficulty[]];
+  const [jpSongs, jpDifficulties, enSongs, enDifficulties] = (await Promise.all(
+    [res1.json(), res2.json(), res3.json(), res4.json()],
+  )) as [ApiSong[], Difficulty[], ApiSong[], Difficulty[]];
 
   const songs = new Map<number, Song>();
   for (const song of enSongs) {
@@ -126,6 +125,34 @@ export class SongRepository {
     return index;
   });
 
+  #textSearchIndex = $derived.by(() => {
+    const index = new Index({
+      tokenize: "bidirectional",
+    });
+    for (const song of this.songs) {
+      const text = [
+        song.jp?.title,
+        song.jp?.pronunciation,
+        song.jp?.arranger,
+        song.jp?.composer,
+        song.jp?.lyricist,
+        song.en?.title,
+        song.en?.pronunciation,
+        song.en?.arranger,
+        song.en?.composer,
+        song.en?.lyricist,
+      ]
+        .filter((it) => it != undefined)
+        .join(" ");
+      index.add(songId(song), text);
+    }
+
+    return index;
+  });
+
+  get textSearchIndex() {
+    return this.#textSearchIndex;
+  }
 
   constructor() {
     this.ready = this.refetch();

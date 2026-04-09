@@ -57,7 +57,7 @@ export class TaskQueue {
   }
 
   public get size(): number {
-    return this.queue.length;
+    return this.queue.length + this.running + this.completed;
   }
 
   public get isRunning(): boolean {
