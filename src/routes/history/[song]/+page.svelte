@@ -65,11 +65,13 @@
               <span>{record.result.score ?? "?"}</span>
             </div>
 
-            <div class="border px-2 py-0.5 flex gap-3">
-              <span
-                >{record.result.perfect}/{record.result.great}/{record.result
-                  .good}/{record.result.bad}/{record.result.miss}</span
+            <div class="border px-2 py-0.5 flex gap-1">
+              <span class="text-violet-500">{record.result.perfect ?? "?"}</span
               >
+              <span class="text-fuchsia-500">{record.result.great ?? "?"}</span>
+              <span class="text-sky-500">{record.result.good ?? "?"}</span>
+              <span class="text-emerald-500">{record.result.bad ?? "?"}</span>
+              <span class="text-neutral-500">{record.result.miss ?? "?"}</span>
             </div>
           </div>
 

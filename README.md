@@ -5,10 +5,13 @@
 - input score manually 
 - score crud ops
 - better localization/data source merging
+- better mobile ui
+  - or ui in general
 - sync?
   - twitter login or someshi
   - so we need a db somewhere
   - just a json is enough
+
 
 ## Extracting
 
