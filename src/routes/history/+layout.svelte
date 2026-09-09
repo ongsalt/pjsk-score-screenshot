@@ -2,8 +2,7 @@
   import { page } from "$app/state";
   import TopInset from "$lib/components/shell/top-inset.svelte";
   import {
-    getPlayRecordByChartId,
-    hasPlayedSong,
+    hasPlayedSong
   } from "$lib/data/play-record.svelte.js";
   import { songId, type Song } from "$lib/data/song.svelte.js";
   import { Index } from "flexsearch";

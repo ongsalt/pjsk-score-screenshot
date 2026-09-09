@@ -1,4 +1,7 @@
 <script lang="ts">
+  import DebugConsole from "$lib/components/shell/debug-console.svelte";
+
+  const id = $props.id();
   import { queues } from "$lib/globals.svelte";
 </script>
 
@@ -15,6 +18,7 @@
       <a class="px-4 py-1 hover:underline" href="/">Home</a>
       <a class="px-4 py-1 hover:underline" href="/history">Play History</a>
       <a class="px-4 py-1 hover:underline" href="/stats">Stats</a>
+      <a class="px-4 py-1 hover:underline" href="/add">Add</a>
     </div>
     <div class="flex flex-col">
       <!-- review next? -->
@@ -23,6 +27,12 @@
       {/if}
       <a class="px-4 py-1 hover:underline" href="/settings">Settings</a>
       <a class="px-4 py-1 hover:underline" href="/about">About</a>
+      <button class="px-4 py-1 hover:underline text-left" popovertarget="{id}-popover">
+        Console
+      </button>
+      <div popover id="{id}-popover" class="size-120 border border-gray-200 shadow-2xl rounded-4xl">
+        <DebugConsole />
+      </div>
     </div>
   </section>
 </nav>
@@ -38,6 +48,7 @@
         <a class="px-4 py-1 hover:underline" href="/">Home</a>
         <a class="px-4 py-1 hover:underline" href="/history">Play History</a>
         <a class="px-4 py-1 hover:underline" href="/stats">Stats</a>
+        <a class="px-4 py-1 hover:underline" href="/stats">Add</a>
       </div>
       <div class="flex flex-col">
         <!-- TODO: mobile ui -->

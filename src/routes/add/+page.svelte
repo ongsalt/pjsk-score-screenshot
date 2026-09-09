@@ -1,21 +1,25 @@
 <script lang="ts">
-  import DifficultySelector from "$lib/components/difficulty-selector.svelte";
+  import FilesUploader, {
+    FilesUploaderState,
+  } from "$lib/components/files-uploader.svelte";
   import Section from "$lib/components/section.svelte";
+  import TopInset from "$lib/components/shell/top-inset.svelte";
+
+  let { data } = $props();
+
+  const filesUploaderState = new FilesUploaderState();
+
+  async function start() {}
 </script>
 
-<h1>Add</h1>
+<TopInset />
+<main class="px-6 pt-4 space-y-2">
+  <FilesUploader state={filesUploaderState} />
 
-<Section label="Chart">
-  <label>
-    <span>Song</span>
-    <select>
-    </select>
-  </label>
+  <!-- <div class="border" id="canvas-host" >
+  </div> -->
 
-  <!-- <DifficultySelector /> -->
+  <Section></Section>
 
-</Section>
-
-<Section label="Result"></Section>
-
-<button> Done </button>
+  <button class="border" onclick={start}>start</button>
+</main>
