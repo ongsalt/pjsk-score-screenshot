@@ -9,6 +9,7 @@
     formatRate,
     fullTimestamp,
     perfectRate,
+    sparkline,
   } from "$lib/data/summary";
   import { createSearchParamsSchema, useSearchParams } from "runed/kit";
 
@@ -40,39 +41,10 @@
     records.length ? Math.min(...records.map((r) => r.result.miss ?? Infinity)) : null,
   );
 
-  /** perfect rate over time, scaled to whatever range this chart actually spans */
-  const spark = $derived.by(() => {
-    const points = [...records]
-      .sort((a, b) => a.playedAt - b.playedAt)
-      .map((record) => perfectRate(record.result))
-      .filter((rate): rate is number => rate !== null);
-
-    if (points.length < 2) return null;
-
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const span = max - min || 1;
-    const width = 358;
-    const height = 84;
-
-    return {
-      points: points
-        .map((value, index) => {
-          const x = 6 + (index * (width - 12)) / (points.length - 1);
-          const y = height - 8 - ((value - min) / span) * (height - 20);
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        })
-        .join(" "),
-      last: points.length - 1,
-      width,
-      height,
-      lastX: (6 + ((points.length - 1) * (width - 12)) / (points.length - 1)).toFixed(1),
-      lastY: (height - 8 - ((points.at(-1)! - min) / span) * (height - 20)).toFixed(1),
-      count: points.length,
-    };
-  });
+  const spark = $derived(sparkline(records));
 </script>
 
+<div class="lg:max-w-3xl">
 <Toolbar title={data.music.title} back="/songs?d={chart?.musicDifficulty ?? 'master'}" />
 
 <div class="flex gap-1.5 px-4 py-3 border-b border-line bg-surface overflow-x-auto">
@@ -184,3 +156,4 @@
     </div>
   {/each}
 {/if}
+</div>

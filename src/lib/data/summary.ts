@@ -85,3 +85,46 @@ export function groupByDay<T extends { playedAt: number }>(records: T[]) {
 
   return groups;
 }
+
+export interface Sparkline {
+  /** polyline points attribute */
+  points: string;
+  lastX: string;
+  lastY: string;
+  width: number;
+  height: number;
+  count: number;
+}
+
+/**
+ * Perfect rate over time, scaled to whatever range this chart actually spans -
+ * the interesting variation is in the last couple of percent, so a 0-100 axis
+ * would flatten every line into the same shape.
+ */
+export function sparkline(
+  records: { playedAt: number; result: Judgements }[],
+  width = 358,
+  height = 84,
+): Sparkline | null {
+  const points = [...records]
+    .sort((a, b) => a.playedAt - b.playedAt)
+    .map((record) => perfectRate(record.result))
+    .filter((rate): rate is number => rate !== null);
+
+  if (points.length < 2) return null;
+
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = max - min || 1;
+  const x = (index: number) => 6 + (index * (width - 12)) / (points.length - 1);
+  const y = (value: number) => height - 8 - ((value - min) / span) * (height - 20);
+
+  return {
+    points: points.map((value, index) => `${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(" "),
+    lastX: x(points.length - 1).toFixed(1),
+    lastY: y(points.at(-1)!).toFixed(1),
+    width,
+    height,
+    count: points.length,
+  };
+}

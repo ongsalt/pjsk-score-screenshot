@@ -55,6 +55,14 @@
       "w": 1440,
       "h": 900,
       "title": "History \u2014 desktop"
+    },
+    {
+      "file": "SongsDesktop.dc.html",
+      "x": 1560,
+      "y": 1000,
+      "w": 1440,
+      "h": 900,
+      "title": "Songs \u2014 desktop"
     }
   ],
   "annotations": [
@@ -78,6 +86,13 @@
       "y": -150,
       "w": 400,
       "text": "500 screenshots is a batch job: run it, then triage only what the reader flagged."
+    },
+    {
+      "id": "note-desktop",
+      "x": 0,
+      "y": 1930,
+      "w": 520,
+      "text": "Desktop is a two-pane tool: dense table on the left, detail on the right.\nBoth panes are one layout, not the phone screen stretched."
     }
   ],
   "launch": {
