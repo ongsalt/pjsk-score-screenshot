@@ -1,13 +1,25 @@
 <script lang="ts">
   import Judgement from "$lib/components/judgement.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
-  import { musicRepository } from "$lib/data/music.svelte";
+  import {
+    musicRepository,
+    type Chart,
+    type Music,
+  } from "$lib/data/music.svelte";
   import { playRecords, type PlayRecord } from "$lib/data/play-record.svelte";
   import { clearMark, formatRate, perfectRate } from "$lib/data/summary";
   import type { Difficulty } from "$lib/pipeline/regions";
   import { createSearchParamsSchema, useSearchParams } from "runed/kit";
+  import { WindowVirtualizer } from "virtua/svelte";
 
-  const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard", "expert", "master", "append"];
+  const DIFFICULTIES: Difficulty[] = [
+    "easy",
+    "normal",
+    "hard",
+    "expert",
+    "master",
+    "append",
+  ];
 
   musicRepository.load();
 
@@ -25,43 +37,92 @@
   $effect(() => () => params.cleanup());
 
   const difficulty = $derived(
-    (DIFFICULTIES.find((value) => value === params.d) ?? "master") as Difficulty,
+    (DIFFICULTIES.find((value) => value === params.d) ??
+      "master") as Difficulty,
   );
   const onlyPlayed = $derived(params.show !== "all");
-  const query = $derived(params.q);
+  const query = $derived(params.q.trim());
 
-  const byChart = $derived.by(() => {
-    const map = new Map<number, PlayRecord[]>();
+  interface Row {
+    music: Music;
+    chart: Chart;
+    records: PlayRecord[];
+    best?: PlayRecord;
+    /** best perfect rate on this chart, null when nothing here can be rated */
+    rate: number | null;
+  }
+
+  /**
+   * One row per song that has a chart at the selected difficulty, ranked by best
+   * perfect rate.
+   *
+   * Deliberately independent of the search box. This used to live inside the
+   * same derived as the filtering, so every keystroke - and clearing the box
+   * again - re-derived every song's best record. `perfectRate` walks a record
+   * that comes out of storage behind a proxy, where every field read is a trap,
+   * and the sort comparator called it twice per comparison on top of that.
+   *
+   * chartOf() is the repository's own cached index; rebuilding one here from
+   * `charts` measured slower, because that array is deep reactive state and
+   * walking it is thousands of proxy reads.
+   */
+  const ranked = $derived.by(() => {
+    const byChart = new Map<number, PlayRecord[]>();
     for (const record of playRecords.all) {
-      const list = map.get(record.chartId);
+      const list = byChart.get(record.chartId);
       if (list) list.push(record);
-      else map.set(record.chartId, [record]);
+      else byChart.set(record.chartId, [record]);
     }
-    return map;
+
+    const rows: Row[] = [];
+    for (const music of musicRepository.musics) {
+      const chart = musicRepository.chartOf(music.id, difficulty);
+      if (!chart) continue;
+
+      const records = byChart.get(chart.id) ?? [];
+      // the newest play is the fallback: a record whose judgement counts came
+      // out of the screenshot incomplete has no rate, but it is still a play
+      let best = records.at(-1);
+      let rate: number | null = null;
+      for (const record of records) {
+        const value = perfectRate(record.result);
+        if (value !== null && (rate === null || value > rate)) {
+          rate = value;
+          best = record;
+        }
+      }
+
+      rows.push({ music, chart, records, best, rate });
+    }
+
+    rows.sort((a, b) => (b.rate ?? -1) - (a.rate ?? -1));
+    return { rows, byMusic: new Map(rows.map((row) => [row.music.id, row])) };
   });
 
+  /**
+   * Search results keep the repository's own relevance order. It goes out of its
+   * way to put the song you actually typed ahead of the ones that merely contain
+   * it ("teo" -> TEO, not METEOR), and re-sorting the hits by rate here buried
+   * an exact title somewhere in the middle of the list. Only the unsearched list
+   * is ranked by rate.
+   */
   const rows = $derived.by(() => {
-    const musics = query ? musicRepository.filter(query) : musicRepository.musics;
+    const base = query
+      ? musicRepository
+          .filter(query)
+          .map((music) => ranked.byMusic.get(music.id))
+          .filter((row) => row !== undefined)
+      : ranked.rows;
 
-    return musics
-      .map((music) => {
-        const chart = musicRepository.chartOf(music.id, difficulty);
-        const records = chart ? (byChart.get(chart.id) ?? []) : [];
-        const best = records.reduce(
-          (top, record) =>
-            (perfectRate(record.result) ?? -1) > (perfectRate(top?.result ?? {}) ?? -1) ? record : top,
-          records[0],
-        );
-        return { music, chart, records, best };
-      })
-      .filter((row) => row.chart && (!onlyPlayed || row.records.length > 0))
-      .sort((a, b) => (perfectRate(b.best?.result ?? {}) ?? -1) - (perfectRate(a.best?.result ?? {}) ?? -1));
+    return onlyPlayed ? base.filter((row) => row.records.length > 0) : base;
   });
 </script>
 
 <Toolbar title="Songs" meta={`${rows.length}`} />
 
-<div class="flex gap-1.5 px-4 py-2.5 border-b border-line bg-surface overflow-x-auto">
+<div
+  class="flex gap-1.5 px-4 py-2.5 border-b border-line bg-surface overflow-x-auto"
+>
   {#each DIFFICULTIES as value}
     {@const active = difficulty === value}
     <button
@@ -76,15 +137,21 @@
   {/each}
 </div>
 
-<div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-line bg-surface">
+<div
+  class="flex items-center gap-1.5 px-4 py-2.5 border-b border-line bg-surface"
+>
   <button
     class="h-8 px-3 rounded text-[13px] transition-colors
-           {onlyPlayed ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
+           {onlyPlayed
+      ? 'bg-ink text-white font-medium'
+      : 'border border-line text-muted'}"
     onclick={() => (params.show = "played")}>Played</button
   >
   <button
     class="h-8 px-3 rounded text-[13px] transition-colors
-           {!onlyPlayed ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
+           {!onlyPlayed
+      ? 'bg-ink text-white font-medium'
+      : 'border border-line text-muted'}"
     onclick={() => (params.show = "all")}>All</button
   >
   <input
@@ -95,53 +162,67 @@
   />
 </div>
 
-{#each rows as row (row.music.id)}
-  {@const played = row.records.length > 0}
-  <a
-    href="/songs/{row.music.id}?d={difficulty}"
-    class="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft bg-surface active:bg-sunken"
-  >
-    <div
-      class="flex items-center justify-center size-10 rounded shrink-0"
-      style="border: 1px solid var(--color-{difficulty}); background: color-mix(in srgb, var(--color-{difficulty}) 6%, transparent)"
+<WindowVirtualizer data={rows} getKey={(row) => row.music.id}>
+  {#snippet children(row)}
+    {@const best = row.best}
+    {@const mark = best ? clearMark(best.result) : null}
+    <a
+      href="/songs/{row.music.id}?d={difficulty}"
+      class="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft bg-surface active:bg-sunken"
     >
-      <span class="num text-[15px] font-semibold" style="color: var(--color-{difficulty})">
-        {row.chart?.playLevel}
-      </span>
-    </div>
-
-    <div class="flex flex-col gap-1.5 flex-1 min-w-0">
-      <div class="flex items-center gap-2">
-        <span class="text-[14.5px] tracking-tight truncate {played ? '' : 'text-faint'}">
-          {row.music.title}
+      <div
+        class="flex items-center justify-center size-10 rounded shrink-0"
+        style="border: 1px solid var(--color-{difficulty}); background: color-mix(in srgb, var(--color-{difficulty}) 6%, transparent)"
+      >
+        <span
+          class="num text-[15px] font-semibold"
+          style="color: var(--color-{difficulty})"
+        >
+          {row.chart.playLevel}
         </span>
-        {#if played && clearMark(row.best.result)}
-          <span class="text-[10px] font-bold tracking-wider text-accent border border-accent rounded-sm px-1.5 py-px">
-            {clearMark(row.best.result)}
+      </div>
+
+      <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span
+            class="text-[14.5px] tracking-tight truncate {best
+              ? ''
+              : 'text-faint'}"
+          >
+            {row.music.title}
           </span>
+          {#if mark}
+            <span
+              class="text-[10px] font-bold tracking-wider text-accent border border-accent rounded-sm px-1.5 py-px"
+            >
+              {mark}
+            </span>
+          {/if}
+        </div>
+        {#if best}
+          <Judgement result={best.result} size="sm" />
+        {:else}
+          <span class="text-xs text-ghost truncate">{row.music.composer}</span>
         {/if}
       </div>
-      {#if played}
-        <Judgement result={row.best.result} size="sm" />
-      {:else}
-        <span class="text-xs text-ghost truncate">{row.music.composer}</span>
-      {/if}
-    </div>
 
-    <div class="flex flex-col items-end gap-1 shrink-0">
-      <span class="num text-base font-medium {played ? '' : 'text-ghost'}">
-        {played ? formatRate(perfectRate(row.best.result)) : "—"}
-      </span>
-      <span class="num text-[11px] {played ? 'text-faint' : 'text-ghost'}">
-        {played ? `${row.records.length} plays` : "unplayed"}
-      </span>
-    </div>
-  </a>
-{:else}
+      <div class="flex flex-col items-end gap-1 shrink-0">
+        <span class="num text-base font-medium {best ? '' : 'text-ghost'}">
+          {formatRate(row.rate)}
+        </span>
+        <span class="num text-[11px] {best ? 'text-faint' : 'text-ghost'}">
+          {best ? `${row.records.length} plays` : "unplayed"}
+        </span>
+      </div>
+    </a>
+  {/snippet}
+</WindowVirtualizer>
+
+{#if rows.length === 0}
   <div class="flex flex-col items-center gap-2 py-20 text-center">
     <span class="font-mono text-lg text-faint">(*￣3￣)╭</span>
     <p class="text-sm text-muted">
       {musicRepository.loading ? "Loading songs…" : "Nothing here"}
     </p>
   </div>
-{/each}
+{/if}
