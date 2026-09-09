@@ -4,8 +4,10 @@
 //
 // https://sekai-world.github.io/sekai-master-db-diff/musics.json
 
+import { Index } from "flexsearch";
 import { SvelteMap } from "svelte/reactivity";
 import type { Difficulty as DifficultyName } from "$lib/pipeline/regions";
+import { isLatin, kanaToRomaji, looseRomaji } from "./romaji";
 import { serverResources, settings } from "./settings.svelte";
 
 export interface Music {
@@ -30,11 +32,17 @@ export interface Chart {
   totalNoteCount: number;
 }
 
+interface Searchable {
+  title: string;
+  pronunciation: string;
+  romaji: string;
+}
+
 export interface ChartMatch {
   music: Music;
   chart?: Chart;
-  /** 0..1 title similarity */
-  score: number;
+  /** the title matched a song exactly, not just closely */
+  exact: boolean;
   /** whether the note count picked the chart, or we fell back to the pill colour */
   matchedBy: "noteCount" | "difficulty" | "none";
   /**
@@ -54,51 +62,20 @@ export function normalizeTitle(value: string) {
     .replace(/[^\p{Letter}\p{Number}]/gu, "");
 }
 
-/** Dice coefficient over character bigrams; forgiving of the odd wrong glyph */
-export function similarity(a: string, b: string) {
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
-
-  const bigrams = new Map<string, number>();
-  for (let i = 0; i < a.length - 1; i++) {
-    const gram = a.slice(i, i + 2);
-    bigrams.set(gram, (bigrams.get(gram) ?? 0) + 1);
-  }
-
-  let hits = 0;
-  for (let i = 0; i < b.length - 1; i++) {
-    const gram = b.slice(i, i + 2);
-    const left = bigrams.get(gram) ?? 0;
-    if (left > 0) {
-      bigrams.set(gram, left - 1);
-      hits += 1;
-    }
-  }
-
-  return (2 * hits) / (a.length + b.length - 2);
-}
-
 class MusicRepository {
   musics: Music[] = $state([]);
   charts: Chart[] = $state([]);
   byId = new SvelteMap<number, Music>();
+  /** charts by their own id - the history feed looks up one per record */
+  chartById = new SvelteMap<number, Chart>();
   loading = $state(false);
   error: string | null = $state(null);
   loadedServer: string | null = $state(null);
 
-  #normalized = $derived(
-    this.musics.map((music) => ({
-      music,
-      title: normalizeTitle(music.title),
-      pronunciation: normalizeTitle(music.pronunciation ?? ""),
-      haystack: normalizeTitle(
-        [music.title, music.pronunciation, music.composer, music.lyricist, music.arranger]
-          .filter(Boolean)
-          .join(" "),
-      ),
-    })),
-  );
+  /** normalized title / kana / romaji per song id, for exact-match checks */
+  #searchable: Map<number, Searchable> = $state(new Map());
+  /** flexsearch over titles, kana readings, romaji and credits */
+  #index: Index | null = $state(null);
 
   #chartsByMusic = $derived.by(() => {
     const map = new Map<number, Chart[]>();
@@ -144,6 +121,11 @@ class MusicRepository {
       this.musics = musics;
       this.charts = charts;
       this.byId = new SvelteMap(musics.map((music) => [music.id, music]));
+      this.chartById = new SvelteMap(charts.map((chart) => [chart.id, chart]));
+      // build the index now, while the page is still showing a loading state -
+      // deferring it to the first keystroke costs ~100ms right when someone is
+      // typing (717 songs, tokenize "full")
+      this.#buildIndex(musics);
       this.loadedServer = server;
     } catch (cause) {
       this.error = cause instanceof Error ? cause.message : String(cause);
@@ -151,6 +133,34 @@ class MusicRepository {
     } finally {
       this.loading = false;
     }
+  }
+
+  #buildIndex(musics: Music[]) {
+    const index = new Index({ tokenize: "full" });
+    const searchable = new Map<number, Searchable>();
+
+    for (const music of musics) {
+      // the title is kanji we cannot read; the kana pronunciation is what makes
+      // a jp song reachable by typing latin letters
+      const romaji = looseRomaji(kanaToRomaji(music.pronunciation ?? ""));
+      searchable.set(music.id, {
+        romaji,
+        title: normalizeTitle(music.title),
+        pronunciation: normalizeTitle(music.pronunciation ?? ""),
+      });
+
+      index.add(
+        music.id,
+        normalizeTitle(
+          [music.title, music.pronunciation, music.composer, music.lyricist, music.arranger]
+            .filter(Boolean)
+            .join(" "),
+        ) + romaji,
+      );
+    }
+
+    this.#searchable = searchable;
+    this.#index = index;
   }
 
   chartsFor(musicId: number): Chart[] {
@@ -161,35 +171,49 @@ class MusicRepository {
     return this.chartsFor(musicId).find((chart) => chart.musicDifficulty === difficulty);
   }
 
-  /**
-   * List filter for the history sidebar: plain substring across every credit,
-   * which is what you want while typing, falling back to the fuzzy title search
-   * so a half-remembered title still finds something.
-   */
+  /** list filter for the songs page */
   filter(query: string): Music[] {
-    const needle = normalizeTitle(query);
-    if (!needle) return this.musics;
-
-    const hits = this.#normalized
-      .filter(({ haystack }) => haystack.includes(needle))
-      .map(({ music }) => music);
-
-    return hits.length > 0 ? hits : this.search(query, 20).map((hit) => hit.music);
+    return query.trim() ? this.search(query, 500) : this.musics;
   }
 
-  /** ranked title search, used by both the matcher and the correction box */
-  search(query: string, limit = 8) {
-    const needle = normalizeTitle(query);
+  /** ranked lookup, used by the songs page, the matcher and the correction box */
+  search(query: string, limit = 8): Music[] {
+    const needle = query.trim();
     if (!needle) return [];
 
-    return this.#normalized
-      .map(({ music, title, pronunciation }) => ({
-        music,
-        score: Math.max(similarity(needle, title), similarity(needle, pronunciation)),
-      }))
-      .filter((hit) => hit.score > 0.2)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+    const index = this.#index;
+    if (!index) return [];
+
+    const romajiNeedle = isLatin(needle) ? looseRomaji(normalizeTitle(needle)) : "";
+    const hits = index.search(needle, { limit, suggest: true }) as number[];
+
+    // a latin query also gets a pass over the romaji readings, which flexsearch
+    // indexed as their own tokens
+    const extra =
+      romajiNeedle && hits.length < limit
+        ? (index.search(romajiNeedle, { limit, suggest: true }) as number[])
+        : [];
+
+    const key = normalizeTitle(needle);
+    const found = [...new Set([...hits, ...extra])]
+      .map((id) => this.byId.get(id))
+      .filter((music): music is Music => music !== undefined);
+
+    // flexsearch ranks by its own relevance, which can put a song that merely
+    // contains the query above the one that IS the query ("teo" -> METEOR)
+    const exact = found.filter((music) => this.#isExact(music.id, key, romajiNeedle));
+    const rest = found.filter((music) => !this.#isExact(music.id, key, romajiNeedle));
+    return [...exact, ...rest].slice(0, limit);
+  }
+
+  #isExact(id: number, key: string, romajiKey: string) {
+    const normalized = this.#searchable.get(id);
+    if (!normalized) return false;
+    return (
+      key === normalized.title ||
+      key === normalized.pronunciation ||
+      (romajiKey !== "" && romajiKey === normalized.romaji)
+    );
   }
 
   /**
@@ -201,10 +225,14 @@ class MusicRepository {
     const candidates = this.search(title, 12);
     if (candidates.length === 0) return null;
 
-    let best: (ChartMatch & { ranked: number }) | null = null;
+    const key = normalizeTitle(title);
+    const romajiKey = isLatin(title) ? looseRomaji(key) : "";
 
-    for (const { music, score } of candidates) {
+    let best: (ChartMatch & { rank: number }) | null = null;
+
+    candidates.forEach((music, position) => {
       const charts = this.chartsFor(music.id);
+      const exact = this.#isExact(music.id, key, romajiKey);
 
       const byNotes = noteCount ? charts.find((chart) => chart.totalNoteCount === noteCount) : undefined;
       const byDifficulty = difficulty
@@ -213,17 +241,19 @@ class MusicRepository {
 
       const chart = byNotes ?? byDifficulty;
       const matchedBy: ChartMatch["matchedBy"] = byNotes ? "noteCount" : byDifficulty ? "difficulty" : "none";
-      // an exact note-count hit outweighs a slightly better title match
-      const ranked = score + (byNotes ? 0.5 : 0);
-      const confident = byNotes ? score >= 0.35 : score >= 0.6;
+      // the note count is the chart's fingerprint, so it outranks search position
+      const rank = (byNotes ? 100 : 0) + (exact ? 50 : 0) - position;
+      // fill the form in only when the title matched outright or the judgement
+      // total pins the chart - a merely close title stays a suggestion
+      const confident = !!byNotes || exact;
 
-      if (!best || ranked > best.ranked) {
-        best = { music, chart: confident ? chart : undefined, score, matchedBy, confident, ranked };
+      if (!best || rank > best.rank) {
+        best = { music, chart: confident ? chart : undefined, exact, matchedBy, confident, rank };
       }
-    }
+    });
 
     if (!best) return null;
-    const { ranked: _ranked, ...match } = best;
+    const { rank: _rank, ...match } = best as ChartMatch & { rank: number };
     return match;
   }
 }

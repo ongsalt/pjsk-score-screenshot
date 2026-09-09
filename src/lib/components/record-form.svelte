@@ -60,13 +60,13 @@
     {#each matches as hit}
       <button
         class="h-8 px-3 rounded-full border text-[13px] transition-colors
-               {hit.music.id === musicId ? 'border-accent text-accent' : 'border-line text-muted'}"
+               {hit.id === musicId ? 'border-accent text-accent' : 'border-line text-muted'}"
         onclick={() => {
-          musicId = hit.music.id;
-          titleQuery = hit.music.title;
+          musicId = hit.id;
+          titleQuery = hit.title;
         }}
       >
-        {hit.music.title}
+        {hit.title}
       </button>
     {:else}
       {#if titleQuery}

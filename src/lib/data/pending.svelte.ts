@@ -1,4 +1,5 @@
 import { PersistedState } from "runed";
+import { SvelteMap } from "svelte/reactivity";
 import type { Difficulty, NumericField } from "$lib/pipeline/regions";
 import { settings } from "./settings.svelte";
 
@@ -26,61 +27,66 @@ export interface PendingReview {
 
 type Server = typeof settings.current.server;
 
-const stores = new Map<Server, PersistedState<PendingReview[]>>();
+class PendingQueue {
+  /** one queue per server, like the records themselves */
+  #stores = new Map<Server, PersistedState<PendingReview[]>>();
+  /** object urls for this session only; empty after a reload, by design */
+  #previews = new SvelteMap<number, string>();
 
-function store(server: Server = settings.current.server) {
-  let existing = stores.get(server);
-  if (!existing) {
-    existing = new PersistedState<PendingReview[]>(`pendingReviews:${server}`, []);
-    stores.set(server, existing);
+  #store(server: Server = settings.current.server) {
+    let existing = this.#stores.get(server);
+    if (!existing) {
+      existing = new PersistedState<PendingReview[]>(`pendingReviews:${server}`, []);
+      this.#stores.set(server, existing);
+    }
+    return existing;
   }
-  return existing;
-}
 
-/** object urls for this session only; empty after a reload, by design */
-const previews = new Map<number, string>();
+  get entries(): PendingReview[] {
+    return this.#store().current;
+  }
 
-export function pendingReviews(): PendingReview[] {
-  return store().current;
-}
+  get count() {
+    return this.entries.length;
+  }
 
-export function pendingById(id: number) {
-  return store().current.find((entry) => entry.id === id);
-}
+  get first(): PendingReview | undefined {
+    return this.entries[0];
+  }
 
-export function previewOf(id: number) {
-  return previews.get(id);
-}
+  byId(id: number) {
+    return this.entries.find((entry) => entry.id === id);
+  }
 
-export function addPending(entry: Omit<PendingReview, "id">, preview?: Blob) {
-  const current = store();
-  const id = current.current.reduce((max, it) => Math.max(max, it.id), 0) + 1;
-  current.current = [...current.current, { ...entry, id }];
-  if (preview) previews.set(id, URL.createObjectURL(preview));
-  return id;
-}
+  previewOf(id: number) {
+    return this.#previews.get(id);
+  }
 
-export function updatePending(id: number, patch: Partial<PendingReview>) {
-  const current = store();
-  current.current = current.current.map((entry) =>
-    entry.id === id ? { ...entry, ...patch } : entry,
-  );
-}
+  add(entry: Omit<PendingReview, "id">, preview?: Blob) {
+    const store = this.#store();
+    const id = store.current.reduce((max, it) => Math.max(max, it.id), 0) + 1;
+    store.current = [...store.current, { ...entry, id }];
+    if (preview) this.#previews.set(id, URL.createObjectURL(preview));
+    return id;
+  }
 
-export function resolvePending(id: number) {
-  const current = store();
-  current.current = current.current.filter((entry) => entry.id !== id);
-  const url = previews.get(id);
-  if (url) {
-    URL.revokeObjectURL(url);
-    previews.delete(id);
+  resolve(id: number) {
+    const store = this.#store();
+    store.current = store.current.filter((entry) => entry.id !== id);
+    const url = this.#previews.get(id);
+    if (url) {
+      URL.revokeObjectURL(url);
+      this.#previews.delete(id);
+    }
+  }
+
+  clear() {
+    for (const id of [...this.#previews.keys()]) this.resolve(id);
+    this.#store().current = [];
   }
 }
 
-export function clearPending() {
-  for (const [id] of previews) resolvePending(id);
-  store().current = [];
-}
+export const pendingQueue = new PendingQueue();
 
 /** truncated sha-256 of the file bytes - enough to spot the same screenshot twice */
 export async function hashFile(file: Blob): Promise<string> {

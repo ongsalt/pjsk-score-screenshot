@@ -16,7 +16,7 @@
     const payload = {
       server: settings.current.server,
       exportedAt: new Date().toISOString(),
-      records: playRecords(),
+      records: playRecords.all,
     };
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
@@ -89,20 +89,14 @@
   <section class="flex flex-col gap-2.5">
     <span class="cap">Data</span>
     <div class="flex flex-col rounded-md border border-line bg-surface overflow-hidden">
-      <div class="flex items-center justify-between gap-3 px-3.5 py-3 border-b border-line-soft">
+      <div class="flex items-center justify-between gap-3 px-3.5 py-3">
         <div class="flex flex-col gap-0.5">
           <span class="text-sm">Records on this device</span>
-          <span class="num text-xs text-faint">{playRecords().length} plays</span>
+          <span class="num text-xs text-faint">{playRecords.count} plays</span>
         </div>
         <button class="h-9 px-3 rounded border border-line text-[13px] text-muted" onclick={exportJson}>
           Export JSON
         </button>
-      </div>
-      <div class="flex items-center justify-between gap-3 px-3.5 py-3">
-        <div class="flex flex-col gap-0.5">
-          <span class="text-sm">Screenshots</span>
-          <span class="text-xs text-faint">Never stored — read once, then dropped</span>
-        </div>
       </div>
     </div>
   </section>

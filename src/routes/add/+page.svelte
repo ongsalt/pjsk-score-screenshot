@@ -1,14 +1,8 @@
 <script lang="ts">
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
-  import {
-    addPending,
-    clearPending,
-    hashFile,
-    pendingReviews,
-    previewOf,
-  } from "$lib/data/pending.svelte";
-  import { addPlayRecord, hasSourceHash } from "$lib/data/play-record.svelte";
+  import { hashFile, pendingQueue } from "$lib/data/pending.svelte";
+  import { playRecords } from "$lib/data/play-record.svelte";
   import { extractResult, getMangaOcr, type ExtractedResult } from "$lib/pipeline";
   import type { NumericField } from "$lib/pipeline/regions";
 
@@ -31,7 +25,6 @@
   let model: { loaded: number; total: number } | null = $state(null);
   let tally = $state({ saved: 0, duplicate: 0 });
 
-  const pending = $derived(pendingReviews());
 
   const rate = $derived(
     progress.done > 0 && progress.startedAt
@@ -61,7 +54,7 @@
       // one file at a time: 500 decoded screenshots will not fit in memory
       try {
         const hash = await hashFile(file);
-        if (hash && (hasSourceHash(hash) || pendingReviews().some((p) => p.sourceHash === hash))) {
+        if (hash && (playRecords.hasSourceHash(hash) || pendingQueue.entries.some((entry) => entry.sourceHash === hash))) {
           tally.duplicate += 1;
           progress.done += 1;
           continue;
@@ -73,7 +66,7 @@
         const reason = reasonFor(result, match?.confident ?? false, chart !== undefined);
 
         if (!reason && chart && match) {
-          addPlayRecord({
+          playRecords.add({
             songId: match.music.id,
             chartId: chart.id,
             playedAt: file.lastModified || Date.now(),
@@ -95,7 +88,7 @@
           tally.saved += 1;
         } else {
           // only a flagged screenshot keeps a preview, and only for this session
-          addPending(
+          pendingQueue.add(
             {
               fileName: file.name,
               reason: reason || "No matching chart",
@@ -111,7 +104,7 @@
           );
         }
       } catch {
-        addPending(
+        pendingQueue.add(
           {
             fileName: file.name,
             reason: "Could not read this image",
@@ -215,12 +208,12 @@
       </div>
       <div
         class="flex flex-col gap-1 p-3.5 rounded-md border
-               {pending.length ? 'border-flag-line bg-flag-soft' : 'border-line bg-surface'}"
+               {pendingQueue.count ? 'border-flag-line bg-flag-soft' : 'border-line bg-surface'}"
       >
-        <span class="num text-[22px] font-medium tracking-tight {pending.length ? 'text-flag' : 'text-ghost'}">
-          {pending.length}
+        <span class="num text-[22px] font-medium tracking-tight {pendingQueue.count ? 'text-flag' : 'text-ghost'}">
+          {pendingQueue.count}
         </span>
-        <span class="text-[11.5px] {pending.length ? 'text-flag' : 'text-faint'}">to review</span>
+        <span class="text-[11.5px] {pendingQueue.count ? 'text-flag' : 'text-faint'}">to review</span>
       </div>
       <div class="flex flex-col gap-1 p-3.5 rounded-md border border-line bg-surface">
         <span class="num text-[22px] font-medium tracking-tight text-ghost">{tally.duplicate}</span>
@@ -229,16 +222,16 @@
     </div>
   {/if}
 
-  {#if pending.length > 0}
+  {#if pendingQueue.count > 0}
     <div class="flex items-baseline justify-between">
       <span class="cap">Needs review</span>
-      <button class="text-[11px] text-faint hover:text-muted" onclick={clearPending}>
+      <button class="text-[11px] text-faint hover:text-muted" onclick={() => pendingQueue.clear()}>
         Discard all
       </button>
     </div>
     <div class="flex flex-col gap-2.5">
-      {#each pending as entry (entry.id)}
-        {@const preview = previewOf(entry.id)}
+      {#each pendingQueue.entries as entry (entry.id)}
+        {@const preview = pendingQueue.previewOf(entry.id)}
         <a
           href="/add/review/{entry.id}"
           class="flex items-center gap-3 p-3 rounded-md border border-line bg-surface"
@@ -259,15 +252,15 @@
       {/each}
     </div>
     <a
-      href="/add/review/{pending[0].id}"
+      href="/add/review/{pendingQueue.first?.id}"
       class="flex items-center justify-center h-12 rounded-md bg-accent text-white text-[15px] font-semibold"
     >
-      Review {pending.length}
-      {pending.length === 1 ? "screenshot" : "screenshots"}
+      Review {pendingQueue.count}
+      {pendingQueue.count === 1 ? "screenshot" : "screenshots"}
     </a>
   {/if}
 
-  {#if phase === "done" && pending.length === 0}
+  {#if phase === "done" && pendingQueue.count === 0}
     <a
       href="/"
       class="flex items-center justify-center h-12 rounded-md bg-accent text-white text-[15px] font-semibold"

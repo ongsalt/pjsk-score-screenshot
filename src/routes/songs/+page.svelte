@@ -1,41 +1,38 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { page } from "$app/state";
   import Judgement from "$lib/components/judgement.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
-  import { playRecords } from "$lib/data/play-record.svelte";
+  import { playRecords, type PlayRecord } from "$lib/data/play-record.svelte";
   import { clearMark, formatRate, perfectRate } from "$lib/data/summary";
   import type { Difficulty } from "$lib/pipeline/regions";
+  import { createSearchParamsSchema, useSearchParams } from "runed/kit";
 
   const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard", "expert", "master", "append"];
 
   musicRepository.load();
 
   // the url is the state: reloading or sharing a link lands on the same view
-  const difficulty = $derived(
-    (DIFFICULTIES.find((d) => d === page.url.searchParams.get("d")) ?? "master") as Difficulty,
-  );
-  const onlyPlayed = $derived(page.url.searchParams.get("show") !== "all");
-  const query = $derived(page.url.searchParams.get("q") ?? "");
+  const schema = createSearchParamsSchema({
+    d: { type: "string", default: "master" },
+    show: { type: "string", default: "played" },
+    q: { type: "string", default: "" },
+  });
+  const params = useSearchParams(schema, {
+    pushHistory: false,
+    noScroll: true,
+    debounce: 200,
+  });
+  $effect(() => () => params.cleanup());
 
-  function setParams(patch: Record<string, string | null>) {
-    const params = new URLSearchParams(page.url.searchParams);
-    for (const [key, value] of Object.entries(patch)) {
-      if (value === null || value === "") params.delete(key);
-      else params.set(key, value);
-    }
-    const search = params.toString();
-    goto(search ? `/songs?${search}` : "/songs", {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true,
-    });
-  }
+  const difficulty = $derived(
+    (DIFFICULTIES.find((value) => value === params.d) ?? "master") as Difficulty,
+  );
+  const onlyPlayed = $derived(params.show !== "all");
+  const query = $derived(params.q);
 
   const byChart = $derived.by(() => {
-    const map = new Map<number, ReturnType<typeof playRecords>>();
-    for (const record of playRecords()) {
+    const map = new Map<number, PlayRecord[]>();
+    for (const record of playRecords.all) {
       const list = map.get(record.chartId);
       if (list) list.push(record);
       else map.set(record.chartId, [record]);
@@ -72,7 +69,7 @@
       style={active
         ? `color: var(--color-${value}); border: 1px solid var(--color-${value}); background: color-mix(in srgb, var(--color-${value}) 6%, transparent)`
         : "border: 1px solid var(--color-line); color: var(--color-muted)"}
-      onclick={() => setParams({ d: value })}
+      onclick={() => (params.d = value)}
     >
       {value}
     </button>
@@ -83,16 +80,15 @@
   <button
     class="h-8 px-3 rounded text-[13px] transition-colors
            {onlyPlayed ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
-    onclick={() => setParams({ show: null })}>Played</button
+    onclick={() => (params.show = "played")}>Played</button
   >
   <button
     class="h-8 px-3 rounded text-[13px] transition-colors
            {!onlyPlayed ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
-    onclick={() => setParams({ show: "all" })}>All</button
+    onclick={() => (params.show = "all")}>All</button
   >
   <input
-    value={query}
-    oninput={(event) => setParams({ q: event.currentTarget.value })}
+    bind:value={params.q}
     placeholder="Search"
     class="flex-1 h-8 px-2.5 rounded border border-line text-[13px] bg-transparent
            focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"

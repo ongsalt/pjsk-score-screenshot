@@ -23,13 +23,13 @@
 
   musicRepository.load();
 
-  const records = $derived(playRecords());
+  const records = $derived(playRecords.all);
 
   const filtered = $derived(
     records.filter((record) => {
       if (filter === "cleared") return clearMark(record.result) !== null;
       if (filter === "master") {
-        return musicRepository.charts.find((c) => c.id === record.chartId)?.musicDifficulty === "master";
+        return musicRepository.chartById.get(record.chartId)?.musicDifficulty === "master";
       }
       return true;
     }),
@@ -44,7 +44,7 @@
   });
 
   function chartOf(chartId: number) {
-    return musicRepository.charts.find((chart) => chart.id === chartId);
+    return musicRepository.chartById.get(chartId);
   }
 
 </script>

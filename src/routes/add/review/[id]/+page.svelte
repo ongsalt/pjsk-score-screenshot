@@ -4,60 +4,34 @@
   import RecordForm from "$lib/components/record-form.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
-  import {
-    pendingById,
-    pendingReviews,
-    previewOf,
-    resolvePending,
-    updatePending,
-    type PendingReview,
-  } from "$lib/data/pending.svelte";
-  import { addPlayRecord } from "$lib/data/play-record.svelte";
-  import type { Difficulty, NumericField } from "$lib/pipeline/regions";
+  import { pendingQueue } from "$lib/data/pending.svelte";
+  import { playRecords } from "$lib/data/play-record.svelte";
 
   musicRepository.load();
 
   const id = $derived(Number.parseInt(page.params.id ?? ""));
-  const entry = $derived(pendingById(id));
-  const queue = $derived(pendingReviews());
-  const position = $derived(queue.findIndex((it) => it.id === id) + 1);
-
-  // a local draft so the form can bind, mirrored back into the persisted queue
-  // as it changes - reloading mid-review keeps the corrections made so far
-  let loaded: number | null = $state(null);
-  let musicId: number | null = $state(null);
-  let difficulty: Difficulty | null = $state(null);
-  let titleQuery = $state("");
-  let values: Partial<Record<NumericField, number | null>> = $state({});
-
-  $effect(() => {
-    if (loaded === id || !entry) return;
-    musicId = entry.musicId;
-    difficulty = entry.difficulty;
-    titleQuery = entry.titleQuery;
-    values = { ...entry.values };
-    loaded = id;
-  });
-
-  $effect(() => {
-    const patch: Partial<PendingReview> = { musicId, difficulty, titleQuery, values: { ...values } };
-    if (loaded === id) updatePending(id, patch);
-  });
+  // the queue is persisted state, so the form binds straight to the stored entry
+  // and every correction is saved as it is typed - no draft, no syncing effect
+  const entry = $derived(pendingQueue.byId(id));
+  const position = $derived(pendingQueue.entries.findIndex((it) => it.id === id) + 1);
 
   const chart = $derived(
-    musicId !== null && difficulty ? musicRepository.chartOf(musicId, difficulty) : undefined,
+    entry?.musicId != null && entry.difficulty
+      ? musicRepository.chartOf(entry.musicId, entry.difficulty)
+      : undefined,
   );
 
   function next() {
-    const remaining = pendingReviews();
-    if (remaining.length === 0) goto("/add");
-    else goto(`/add/review/${remaining[0].id}`, { replaceState: true });
+    const upcoming = pendingQueue.first;
+    goto(upcoming ? `/add/review/${upcoming.id}` : "/add", { replaceState: true });
   }
 
   function commit() {
-    if (!entry || musicId === null || !chart) return;
-    addPlayRecord({
-      songId: musicId,
+    if (!entry || entry.musicId === null || !chart) return;
+    const { values } = entry;
+
+    playRecords.add({
+      songId: entry.musicId,
       chartId: chart.id,
       playedAt: entry.playedAt || Date.now(),
       sourceHash: entry.sourceHash || undefined,
@@ -75,17 +49,22 @@
         wrongWay: values.wrongWay ?? undefined,
       },
     });
-    resolvePending(id);
+
+    pendingQueue.resolve(id);
     next();
   }
 
   function discard() {
-    resolvePending(id);
+    pendingQueue.resolve(id);
     next();
   }
 </script>
 
-<Toolbar title="Review" meta={position > 0 ? `${position} / ${queue.length}` : undefined} back="/add" />
+<Toolbar
+  title="Review"
+  meta={position > 0 ? `${position} / ${pendingQueue.count}` : undefined}
+  back="/add"
+/>
 
 {#if !entry}
   <div class="flex flex-col items-center gap-3 py-20 text-center">
@@ -95,7 +74,7 @@
     </a>
   </div>
 {:else}
-  {@const preview = previewOf(entry.id)}
+  {@const preview = pendingQueue.previewOf(entry.id)}
   <div class="flex flex-col gap-3.5 p-4 max-w-2xl">
     {#if preview}
       <img src={preview} alt="" class="w-full max-h-44 object-cover rounded-md border border-line" />
@@ -111,10 +90,10 @@
     <p class="text-xs text-flag">{entry.reason}</p>
 
     <RecordForm
-      bind:musicId
-      bind:difficulty
-      bind:titleQuery
-      bind:values
+      bind:musicId={entry.musicId}
+      bind:difficulty={entry.difficulty}
+      bind:titleQuery={entry.titleQuery}
+      bind:values={entry.values}
       lowConfidence={entry.lowConfidence}
     />
 

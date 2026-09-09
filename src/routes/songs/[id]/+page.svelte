@@ -1,7 +1,7 @@
 <script lang="ts">
   import Judgement from "$lib/components/judgement.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
-  import { getPlayRecordByChartId } from "$lib/data/play-record.svelte";
+  import { playRecords } from "$lib/data/play-record.svelte";
   import {
     clearMark,
     dayLabel,
@@ -10,27 +10,23 @@
     fullTimestamp,
     perfectRate,
   } from "$lib/data/summary";
-  import { goto } from "$app/navigation";
-  import { page } from "$app/state";
+  import { createSearchParamsSchema, useSearchParams } from "runed/kit";
 
   let { data } = $props();
 
   // ?d= keeps this shareable and survives a reload, and is what a history row links to
+  const params = useSearchParams(
+    createSearchParamsSchema({ d: { type: "string", default: "master" } }),
+    { pushHistory: false, noScroll: true },
+  );
+
   const chart = $derived(
-    data.charts.find((it) => it.musicDifficulty === page.url.searchParams.get("d")) ??
+    data.charts.find((it) => it.musicDifficulty === params.d) ??
       data.charts.find((it) => it.musicDifficulty === "master") ??
       data.charts.at(-1),
   );
 
-  function select(difficulty: string) {
-    goto(`/songs/${data.music.id}?d=${difficulty}`, {
-      replaceState: true,
-      noScroll: true,
-      keepFocus: true,
-    });
-  }
-
-  const records = $derived(chart ? getPlayRecordByChartId(chart.id) : []);
+  const records = $derived(chart ? playRecords.forChart(chart.id) : []);
   const newest = $derived([...records].sort((a, b) => b.playedAt - a.playedAt));
   const best = $derived(
     records.reduce(
@@ -87,7 +83,7 @@
       style={active
         ? `border: 1px solid var(--color-${option.musicDifficulty}); background: color-mix(in srgb, var(--color-${option.musicDifficulty}) 6%, transparent)`
         : "border: 1px solid var(--color-line)"}
-      onclick={() => select(option.musicDifficulty)}
+      onclick={() => (params.d = option.musicDifficulty)}
     >
       <span
         class="num text-[15px] {active ? 'font-semibold' : 'text-muted'}"

@@ -37,59 +37,72 @@ type Server = typeof settings.current.server;
  * one server's database - the same song has a different id on jp and en - so a
  * single shared list would point half the records at the wrong charts.
  */
-const stores = new Map<Server, PersistedState<PlayRecord[]>>();
+class PlayRecords {
+  #stores = new Map<Server, PersistedState<PlayRecord[]>>();
 
-function store(server: Server = settings.current.server) {
-  let existing = stores.get(server);
-  if (!existing) {
-    existing = new PersistedState<PlayRecord[]>(`playRecords:${server}`, adopt(server));
-    stores.set(server, existing);
+  #store(server: Server = settings.current.server) {
+    let existing = this.#stores.get(server);
+    if (!existing) {
+      existing = new PersistedState<PlayRecord[]>(`playRecords:${server}`, this.#adopt(server));
+      this.#stores.set(server, existing);
+    }
+    return existing;
   }
-  return existing;
-}
 
-/**
- * Records written before the split lived under a single "playRecords" key with
- * no server attached. They were all made against whatever server was selected
- * at the time, so hand them to that one. The old key is left alone.
- */
-function adopt(server: Server): PlayRecord[] {
-  if (typeof localStorage === "undefined") return [];
-  if (server !== settings.current.server) return [];
-  if (localStorage.getItem(`playRecords:${server}`) !== null) return [];
+  /**
+   * Records written before the split lived under a single "playRecords" key with
+   * no server attached. They were all made against whatever server was selected
+   * at the time, so hand them to that one. The old key is left alone.
+   */
+  #adopt(server: Server): PlayRecord[] {
+    if (typeof localStorage === "undefined") return [];
+    if (server !== settings.current.server) return [];
+    if (localStorage.getItem(`playRecords:${server}`) !== null) return [];
 
-  try {
-    const legacy = localStorage.getItem("playRecords");
-    return legacy ? (JSON.parse(legacy) as PlayRecord[]) : [];
-  } catch {
-    return [];
+    try {
+      const legacy = localStorage.getItem("playRecords");
+      return legacy ? (JSON.parse(legacy) as PlayRecord[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** every record on the current server, newest last */
+  get all(): PlayRecord[] {
+    return this.#store().current;
+  }
+
+  get count() {
+    return this.all.length;
+  }
+
+  on(server: Server): PlayRecord[] {
+    return this.#store(server).current;
+  }
+
+  forChart(chartId: number): PlayRecord[] {
+    return this.all.filter((record) => record.chartId === chartId);
+  }
+
+  hasSong(songId: number) {
+    return this.all.some((record) => record.songId === songId);
+  }
+
+  hasSourceHash(hash: string) {
+    return hash !== "" && this.all.some((record) => record.sourceHash === hash);
+  }
+
+  add(record: Omit<PlayRecord, "id">) {
+    const store = this.#store();
+    const id = store.current.reduce((max, it) => Math.max(max, it.id), 0) + 1;
+    store.current = [...store.current, { ...record, id }];
+    return id;
+  }
+
+  remove(id: number) {
+    const store = this.#store();
+    store.current = store.current.filter((record) => record.id !== id);
   }
 }
 
-export function playRecords(server?: Server): PlayRecord[] {
-  return store(server).current;
-}
-
-// return a flow
-export function getPlayRecordByChartId(id: number): PlayRecord[] {
-  return playRecords().filter((it) => it.chartId === id);
-}
-
-export function hasPlayedSong(id: number) {
-  return playRecords().some((it) => it.songId === id);
-}
-
-export function hasSourceHash(hash: string) {
-  return hash !== "" && playRecords().some((it) => it.sourceHash === hash);
-}
-
-export function addPlayRecord(record: Omit<PlayRecord, "id">) {
-  const current = store();
-  const nextId = current.current.reduce((max, it) => Math.max(max, it.id), 0) + 1;
-  current.current = [...current.current, { ...record, id: nextId }];
-}
-
-export function deletePlayRecord(id: number) {
-  const current = store();
-  current.current = current.current.filter((it) => it.id !== id);
-}
+export const playRecords = new PlayRecords();

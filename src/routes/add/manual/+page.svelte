@@ -3,7 +3,7 @@
   import RecordForm from "$lib/components/record-form.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
-  import { addPlayRecord } from "$lib/data/play-record.svelte";
+  import { playRecords } from "$lib/data/play-record.svelte";
   import type { Difficulty, NumericField } from "$lib/pipeline/regions";
 
   musicRepository.load();
@@ -28,7 +28,7 @@
 
   function save() {
     if (musicId === null || !chart) return;
-    addPlayRecord({
+    playRecords.add({
       songId: musicId,
       chartId: chart.id,
       playedAt: playedAt ? new Date(playedAt).getTime() : Date.now(),
