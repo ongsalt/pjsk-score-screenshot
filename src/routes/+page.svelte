@@ -77,13 +77,13 @@
   {/each}
 </div>
 
-{#each groups as group}
+{#each groups as group (group.label)}
   <div class="flex items-center justify-between px-4 pt-3 pb-2">
     <span class="cap" title={fullTimestamp(group.records[0].playedAt)}>{group.label}</span>
     <span class="num text-[11px] text-faint">{group.records.length}</span>
   </div>
 
-  {#each group.records as record}
+  {#each group.records as record (record.id)}
     {@const chart = chartOf(record.chartId)}
     {@const music = musicRepository.byId.get(record.songId)}
     {@const difficulty = chart?.musicDifficulty ?? "master"}

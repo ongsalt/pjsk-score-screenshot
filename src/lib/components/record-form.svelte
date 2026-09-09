@@ -57,7 +57,7 @@
            focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
   />
   <div class="flex flex-wrap gap-1.5">
-    {#each matches as hit}
+    {#each matches as hit (hit.id)}
       <button
         class="h-8 px-3 rounded-full border text-[13px] transition-colors
                {hit.id === musicId ? 'border-accent text-accent' : 'border-line text-muted'}"
@@ -80,7 +80,7 @@
   <div class="flex flex-col gap-2">
     <span class="cap">Difficulty</span>
     <div class="flex flex-wrap gap-1.5">
-      {#each charts as option}
+      {#each charts as option (option.id)}
         {@const active = difficulty === option.musicDifficulty}
         <button
           class="h-11 px-3 rounded text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap"

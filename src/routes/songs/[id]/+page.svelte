@@ -76,7 +76,7 @@
 <Toolbar title={data.music.title} back="/songs?d={chart?.musicDifficulty ?? 'master'}" />
 
 <div class="flex gap-1.5 px-4 py-3 border-b border-line bg-surface overflow-x-auto">
-  {#each data.charts as option}
+  {#each data.charts as option (option.id)}
     {@const active = option.musicDifficulty === chart?.musicDifficulty}
     <button
       class="shrink-0 flex-1 min-w-16 flex flex-col items-center gap-1 px-2 py-2 rounded transition-colors"
@@ -167,7 +167,7 @@
     <span class="num text-[11px] text-faint">{records.length}</span>
   </div>
 
-  {#each newest as record}
+  {#each newest as record (record.id)}
     <div class="flex items-center gap-2.5 px-4 py-3 border-b border-line-soft bg-surface">
       <span class="num text-[11.5px] text-faint w-12 shrink-0" title={fullTimestamp(record.playedAt)}>
         {dayLabel(record.playedAt)}
