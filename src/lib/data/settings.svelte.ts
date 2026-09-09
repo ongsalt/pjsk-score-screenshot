@@ -1,11 +1,15 @@
+import type { Device } from "$lib/pipeline/manga-ocr";
 import { PersistedState } from "runed";
 
 type Settings = {
   server: "en" | "jp";
+  /** "auto" picks the fastest backend the browser actually supports */
+  device: Device | "auto";
 };
 
 const defaultSettings: Settings = {
   server: "jp",
+  device: "auto",
 };
 
 export const settings = new PersistedState("settings", defaultSettings);

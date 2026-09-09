@@ -1,6 +1,7 @@
 <script lang="ts">
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
+  import { settings } from "$lib/data/settings.svelte";
   import { hashFile, pendingQueue } from "$lib/data/pending.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
   import { extractResult, getMangaOcr, type ExtractedResult } from "$lib/pipeline";
@@ -47,7 +48,10 @@
 
     await Promise.all([
       musicRepository.load(),
-      getMangaOcr({ onProgress: (p) => (model = { loaded: p.loaded, total: p.total }) }),
+      getMangaOcr({
+        device: settings.current.device === "auto" ? undefined : settings.current.device,
+        onProgress: (p) => (model = { loaded: p.loaded, total: p.total }),
+      }),
     ]);
     model = null;
 

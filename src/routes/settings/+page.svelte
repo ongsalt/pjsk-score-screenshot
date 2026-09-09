@@ -3,16 +3,19 @@
   import { musicRepository } from "$lib/data/music.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
   import { settings } from "$lib/data/settings.svelte";
+  import { bestDevice, hasWebGPU, hasWebNN } from "$lib/pipeline/manga-ocr";
 
   const SERVERS = [
     ["jp", "Japan"],
     ["en", "English"],
   ] as const;
 
-  const accelerator =
-    typeof navigator !== "undefined" && "gpu" in navigator
-      ? "WebGPU"
-      : "WebAssembly";
+  const DEVICES = [
+    { id: "auto", label: "Auto", available: () => true },
+    { id: "webnn", label: "WebNN", available: hasWebNN },
+    { id: "webgpu", label: "WebGPU", available: hasWebGPU },
+    { id: "wasm", label: "WASM", available: () => true },
+  ] as const;
 
   function exportJson() {
     const payload = {
@@ -73,13 +76,33 @@
         </div>
         <span class="text-[13px] text-muted">Loaded on first import</span>
       </div>
-      <div
-        class="flex items-center justify-between gap-3 px-3.5 py-3 border-line-soft"
-      >
-        <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col gap-2.5 px-3.5 py-3 border-line-soft">
+        <div class="flex items-baseline justify-between gap-3">
           <span class="text-sm">Acceleration</span>
-          <span class="num text-xs text-faint">{accelerator}</span>
+          <span class="num text-xs text-faint">
+            {settings.current.device === "auto"
+              ? `auto · ${bestDevice()}`
+              : settings.current.device}
+          </span>
         </div>
+        <div class="grid grid-cols-4 gap-1">
+          {#each DEVICES as option}
+            {@const active = settings.current.device === option.id}
+            <button
+              class="h-9 rounded text-[12px] transition-colors disabled:opacity-30 disabled:cursor-not-allowed
+                     {active ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
+              disabled={!option.available()}
+              onclick={() => (settings.current.device = option.id)}
+            >
+              {option.label}
+            </button>
+          {/each}
+        </div>
+        <p class="text-xs leading-relaxed text-faint">
+          WebNN uses the NPU where the device has one — quicker and much easier on battery than the
+          GPU path. Unsupported operators fall back on their own, and a change applies to your next
+          import.
+        </p>
       </div>
     </div>
   </section>

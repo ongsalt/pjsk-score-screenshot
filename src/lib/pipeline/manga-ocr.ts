@@ -9,10 +9,13 @@ import {
 import ortWasmUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
 import type * as Ort from "onnxruntime-web/webgpu";
 
+export type Device = "webnn" | "webgpu" | "wasm";
+
 export interface MangaOcrOptions {
   /** where scripts/fetch-model.sh put the split model */
   baseUrl?: string;
-  device?: "webgpu" | "wasm";
+  /** omit to pick the fastest backend this browser actually has */
+  device?: Device;
   onProgress?: (progress: LoadProgress) => void;
 }
 
@@ -58,7 +61,7 @@ export class MangaOcr {
 
   static async load(options: MangaOcrOptions = {}): Promise<MangaOcr> {
     const baseUrl = options.baseUrl ?? "/ocr";
-    const device = options.device ?? (hasWebGPU() ? "webgpu" : "wasm");
+    const device = options.device ?? bestDevice();
 
     const [ort, manifest] = await Promise.all([getOrt(), loadManifest(baseUrl)]);
     const total = manifest.assets.encoder.size + manifest.assets.decoder.size;
@@ -76,7 +79,7 @@ export class MangaOcr {
     ]);
 
     const sessionOptions: Ort.InferenceSession.SessionOptions = {
-      executionProviders: device === "webgpu" ? ["webgpu", "wasm"] : ["wasm"],
+      executionProviders: executionProviders(device),
       graphOptimizationLevel: "all",
     };
 
@@ -156,15 +159,66 @@ export class MangaOcr {
 }
 
 let instance: Promise<MangaOcr> | null = null;
+let loadedDevice: Device | null = null;
 
-/** loads the model once and reuses it (~112 MiB, cached by the browser after) */
+/**
+ * Loads the model once and reuses it (~112 MiB, cached by the browser after).
+ * Asking for a different backend rebuilds the sessions - the weights come from
+ * the http cache, so it costs a session build, not a download.
+ */
 export function getMangaOcr(options?: MangaOcrOptions) {
-  instance ??= MangaOcr.load(options);
+  const device = options?.device ?? bestDevice();
+
+  if (instance && loadedDevice !== device) {
+    const previous = instance;
+    instance = null;
+    void previous.then((ocr) => ocr.release()).catch(() => {});
+  }
+
+  loadedDevice = device;
+  instance ??= MangaOcr.load({ ...options, device });
   return instance;
 }
 
-function hasWebGPU() {
+/**
+ * Every provider falls back to wasm, so an unsupported op or a driver that
+ * refuses the model degrades instead of failing the whole session.
+ *
+ * WebNN goes through the OS neural-network API, which on a laptop or phone with
+ * an NPU is both quicker and far cheaper on battery than the GPU path. The
+ * asyncify wasm we already ship carries the WebNN EP, so this costs no extra
+ * download.
+ */
+function executionProviders(device: Device): Ort.InferenceSession.ExecutionProviderConfig[] {
+  switch (device) {
+    case "webnn":
+      // npu first, then the browser's own choice; both fall back to gpu/wasm
+      return [
+        { name: "webnn", deviceType: "npu", powerPreference: "high-performance" },
+        { name: "webnn", deviceType: "gpu" },
+        "webgpu",
+        "wasm",
+      ];
+    case "webgpu":
+      return ["webgpu", "wasm"];
+    default:
+      return ["wasm"];
+  }
+}
+
+export function hasWebNN() {
+  return typeof navigator !== "undefined" && "ml" in navigator;
+}
+
+export function hasWebGPU() {
   return typeof navigator !== "undefined" && "gpu" in navigator;
+}
+
+/** what the browser can actually do, fastest first */
+export function bestDevice(): Device {
+  if (hasWebNN()) return "webnn";
+  if (hasWebGPU()) return "webgpu";
+  return "wasm";
 }
 
 /**
