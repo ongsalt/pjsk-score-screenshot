@@ -15,7 +15,7 @@
   class="sticky top-0 z-10 flex items-center gap-2.5 h-13 pl-4 pr-2 border-b border-line bg-surface"
 >
   {#if back}
-    <a href={back} class="flex items-center justify-center size-11 -ml-3 rounded-md text-ink">
+    <a href={back} aria-label="Back" class="flex items-center justify-center size-11 -ml-3 rounded-md text-ink">
       <svg
         width="20"
         height="20"

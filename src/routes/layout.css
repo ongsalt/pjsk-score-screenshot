@@ -22,6 +22,16 @@
   --color-flag-line: #d9b48a;
   --color-flag-soft: #fdf6ee;
 
+}
+
+/*
+ * Judgement and difficulty palettes live in plain :root, NOT in @theme.
+ * They are only ever read as var(--color-<name>) built at runtime
+ * (`var(--color-{difficulty})`), so the literal token name never appears in the
+ * source - Tailwind's scanner would drop them from the build and every one of
+ * these colours would silently render as nothing.
+ */
+:root {
   /* judgement, darkened from the game's own labels for contrast on light */
   --color-perfect: #7c5cd6;
   --color-great: #c9439e;

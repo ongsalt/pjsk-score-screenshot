@@ -7,13 +7,10 @@ export const prerender = false;
 export const load: PageLoad = async ({ params }) => {
   await musicRepository.load();
 
-  const music = musicRepository.byId.get(Number.parseInt(params.song));
+  const music = musicRepository.byId.get(Number.parseInt(params.id));
   if (!music) {
-    error(404, "Chart not founded");
+    error(404, "Song not found");
   }
 
-  return {
-    music,
-    charts: musicRepository.chartsFor(music.id),
-  };
+  return { music, charts: musicRepository.chartsFor(music.id) };
 };

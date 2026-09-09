@@ -124,6 +124,12 @@ class MusicRepository {
     return this.#pending;
   }
 
+  /** force a re-fetch of the current server, ignoring the cached load */
+  refresh(): Promise<void> {
+    this.loadedServer = null;
+    return this.load();
+  }
+
   async #fetch(server: keyof typeof serverResources) {
     this.loading = true;
     this.error = null;

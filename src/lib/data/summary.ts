@@ -2,10 +2,22 @@ import type { PlayRecord } from "./play-record.svelte";
 
 type Result = PlayRecord["result"];
 
+/**
+ * The judgement fields, however they arrive - saved records use `undefined` for
+ * a missing value, the import form uses `null` while a field is empty.
+ */
+type Judgements = {
+  perfect?: number | null;
+  great?: number | null;
+  good?: number | null;
+  bad?: number | null;
+  miss?: number | null;
+};
+
 /** perfect + great + good + bad + miss, which equals the chart's note count */
-export function noteTotal(result: Result): number | null {
+export function noteTotal(result: Judgements): number | null {
   const parts = [result.perfect, result.great, result.good, result.bad, result.miss];
-  if (parts.some((value) => value === undefined)) return null;
+  if (parts.some((value) => value === undefined || value === null)) return null;
   return parts.reduce((sum, value) => sum! + value!, 0)!;
 }
 
@@ -13,9 +25,9 @@ export function noteTotal(result: Result): number | null {
  * What players actually judge a run by. Score depends on team power, so it says
  * nothing about how well the chart was played - this does.
  */
-export function perfectRate(result: Result): number | null {
+export function perfectRate(result: Judgements): number | null {
   const total = noteTotal(result);
-  if (!total || result.perfect === undefined) return null;
+  if (!total || result.perfect === undefined || result.perfect === null) return null;
   return result.perfect / total;
 }
 
@@ -24,9 +36,9 @@ export function formatRate(rate: number | null) {
 }
 
 /** bad and miss break combo in this game; good does not */
-export function clearMark(result: Result): "AP" | "FC" | null {
+export function clearMark(result: Judgements): "AP" | "FC" | null {
   const { great, good, bad, miss } = result;
-  if ([bad, miss].some((value) => value === undefined)) return null;
+  if ([bad, miss].some((value) => value === undefined || value === null)) return null;
   if (bad !== 0 || miss !== 0) return null;
   if (great === 0 && good === 0) return "AP";
   return "FC";
