@@ -1,56 +1,25 @@
 <script lang="ts">
   import { page } from "$app/state";
   import TopInset from "$lib/components/shell/top-inset.svelte";
-  import {
-    hasPlayedSong
-  } from "$lib/data/play-record.svelte.js";
-  import { songId, type Song } from "$lib/data/song.svelte.js";
-  import { Index } from "flexsearch";
+  import { musicRepository } from "$lib/data/music.svelte";
+  import { hasPlayedSong } from "$lib/data/play-record.svelte.js";
   import { PersistedState } from "runed";
-  import { da } from "zod/locales";
 
-  let { children, data } = $props();
-  const index = $derived(data.songRepository.textSearchIndex);
-  
-  // TODO: move this to settings
-  const showEnName = new PersistedState("showEnName", true);
+  let { children } = $props();
+
   const filterOnlyPlayed = new PersistedState("filterOnlyPlayed", false);
 
   let searchValue = $state("");
 
-  const matched = $derived.by(() => {
-    if (searchValue === "") {
-      return data.songRepository.songs;
-    } else {
-      return index
-        .search(searchValue)
-        .map((id) => data.songRepository.songsById.get(id as number)!);
-    }
-  });
+  const matched = $derived(musicRepository.filter(searchValue));
 
-  const filtered = $derived.by(() => {
-    if (!filterOnlyPlayed.current) {
-      return matched;
-    }
-
-    return matched.filter((it) => hasPlayedSong(songId(it)));
-  });
+  const filtered = $derived(
+    filterOnlyPlayed.current
+      ? matched.filter((music) => hasPlayedSong(music.id))
+      : matched,
+  );
 
   const isRoot = $derived(page.route.id === "/history");
-
-  function songTitle(song: Song) {
-    if (showEnName.current) {
-      return song.en?.title ?? song.jp?.title;
-    }
-    return song.jp?.title ?? song.en?.title;
-  }
-
-  function songComposer(song: Song) {
-    if (showEnName.current) {
-      return song.en?.composer ?? song.jp?.composer;
-    }
-    return song.jp?.composer ?? song.en?.composer;
-  }
 </script>
 
 <main class="flex h-screen">
@@ -70,11 +39,6 @@
         <input type="checkbox" bind:checked={filterOnlyPlayed.current} />
         only played
       </label>
-
-      <label>
-        <input type="checkbox" bind:checked={showEnName.current} />
-        english name
-      </label>
       <label>
         sort
         <select name="" id="" class="border">
@@ -82,29 +46,31 @@
           <option value="">last played</option>
         </select>
       </label>
-      <!-- <p>this is pretty much osu song selector</p> -->
+      <!-- titles come from whichever server is picked in settings -->
     </div>
 
     <div class="flex flex-col">
-      {#each filtered as song, i}
-        {@const selected = songId(song).toString() === page.params.song}
+      {#each filtered as music}
+        {@const selected = music.id.toString() === page.params.song}
         <a
-          href="/history/{songId(song)}"
+          href="/history/{music.id}"
           class="flex flex-col hover:underline px-2.5 py-1 {selected
             ? 'bg-teal-500/7 text-teal-700'
             : ''}"
         >
           <span>
-            {songTitle(song)}
+            {music.title}
           </span>
           <span class="text-sm opacity-65">
-            {songComposer(song)}
+            {music.composer}
           </span>
         </a>
       {:else}
         <div class="flex flex-col items-center w-full py-6">
           <span class="opacity-65 font-mono text-lg"> (*￣3￣)╭ </span>
-          <span class="text-sm mt-2">No results</span>
+          <span class="text-sm mt-2">
+            {musicRepository.loading ? "Loading…" : "No results"}
+          </span>
         </div>
       {/each}
     </div>

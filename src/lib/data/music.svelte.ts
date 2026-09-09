@@ -92,6 +92,11 @@ class MusicRepository {
       music,
       title: normalizeTitle(music.title),
       pronunciation: normalizeTitle(music.pronunciation ?? ""),
+      haystack: normalizeTitle(
+        [music.title, music.pronunciation, music.composer, music.lyricist, music.arranger]
+          .filter(Boolean)
+          .join(" "),
+      ),
     })),
   );
 
@@ -148,6 +153,22 @@ class MusicRepository {
 
   chartOf(musicId: number, difficulty: DifficultyName) {
     return this.chartsFor(musicId).find((chart) => chart.musicDifficulty === difficulty);
+  }
+
+  /**
+   * List filter for the history sidebar: plain substring across every credit,
+   * which is what you want while typing, falling back to the fuzzy title search
+   * so a half-remembered title still finds something.
+   */
+  filter(query: string): Music[] {
+    const needle = normalizeTitle(query);
+    if (!needle) return this.musics;
+
+    const hits = this.#normalized
+      .filter(({ haystack }) => haystack.includes(needle))
+      .map(({ music }) => music);
+
+    return hits.length > 0 ? hits : this.search(query, 20).map((hit) => hit.music);
   }
 
   /** ranked title search, used by both the matcher and the correction box */

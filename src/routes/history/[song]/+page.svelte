@@ -5,21 +5,21 @@
   import { PersistedState } from "runed";
 
   let { data } = $props();
-  const song = $derived(data.detail.song);
+  const music = $derived(data.music);
 
   const selectedDifficulty = new PersistedState("selectedDifficulty", "master");
 
   $effect(() => {
     if (
       selectedDifficulty.current === "append" &&
-      data.detail.difficulties.length <= 5
+      data.charts.length <= 5
     ) {
       selectedDifficulty.current = "master";
     }
   });
 
   const chart = $derived(
-    data.detail.difficulties.find(
+    data.charts.find(
       (it) => it.musicDifficulty === selectedDifficulty.current,
     ),
   );
@@ -30,14 +30,14 @@
 <TopInset />
 <main class="p-4">
   <h2 class="text-2xl">
-    {song.en?.title ?? song.jp?.title}
+    {music.title}
   </h2>
   <p>
-    {song.en?.composer ?? song.jp?.composer}
+    {music.composer}
   </p>
 
   <DifficultySelector
-    difficulties={data.detail.difficulties}
+    difficulties={data.charts}
     bind:selectedDifficulty={selectedDifficulty.current}
   />
 

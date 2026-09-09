@@ -1,4 +1,3 @@
-import { songId, type SongRepository } from "$lib/data/song.svelte";
 import { he } from "zod/locales";
 import type { RecognizeResult } from "./ocr/tesseract";
 

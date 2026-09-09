@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Difficulty } from "$lib/data/song.svelte";
+  import type { Chart } from "$lib/data/music.svelte";
 
   interface Props {
-    difficulties: Difficulty[];
+    difficulties: Chart[];
     selectedDifficulty: string;
   }
 
