@@ -163,12 +163,12 @@
 </div>
 
 <WindowVirtualizer data={rows} getKey={(row) => row.music.id}>
-  {#snippet children(row)}
+  {#snippet children(row, index)}
     {@const best = row.best}
     {@const mark = best ? clearMark(best.result) : null}
     <a
       href="/songs/{row.music.id}?d={difficulty}"
-      class="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft bg-surface active:bg-sunken"
+      class="flex items-center gap-3 px-4 py-3.5 border-t border-line-soft bg-surface active:bg-sunken {index == rows.length - 1 ? 'border-b' : ''}"
     >
       <div
         class="flex items-center justify-center size-10 rounded shrink-0"
