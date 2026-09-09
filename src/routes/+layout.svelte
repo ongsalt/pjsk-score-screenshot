@@ -1,19 +1,19 @@
 <script lang="ts">
   import favicon from "$lib/assets/favicon.svg";
   import "./layout.css";
-  import Sidebar from "../lib/components/shell/sidebar.svelte";
+  import Nav from "$lib/components/shell/nav.svelte";
 
   let { children } = $props();
 </script>
 
 <svelte:head>
   <link rel="icon" href={favicon} />
-  <title>Sekaiiiii</title>
+  <title>pjsk score</title>
 </svelte:head>
 
-<div class="flex min-h-screen">
-  <Sidebar />
-  <div class="flex-1">
-    {@render children()}
-  </div>
+<Nav />
+
+<!-- rail on desktop, mode strip on mobile -->
+<div class="sm:pl-56 pb-12 sm:pb-0 min-h-screen">
+  {@render children()}
 </div>

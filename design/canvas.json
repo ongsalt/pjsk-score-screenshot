@@ -1,0 +1,86 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "History"
+    },
+    {
+      "file": "Songs.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Songs"
+    },
+    {
+      "file": "SongDetail.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Song detail"
+    },
+    {
+      "file": "Import.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Import 500 shots"
+    },
+    {
+      "file": "Review.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Review flagged"
+    },
+    {
+      "file": "Settings.dc.html",
+      "x": 2450,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Settings"
+    },
+    {
+      "file": "HistoryDesktop.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 1440,
+      "h": 900,
+      "title": "History \u2014 desktop"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-judgement",
+      "x": 0,
+      "y": -150,
+      "w": 460,
+      "text": "Judgement counts lead every screen; score is demoted to muted metadata.\nRate = perfect / total notes."
+    },
+    {
+      "id": "note-browse",
+      "x": 490,
+      "y": -150,
+      "w": 400,
+      "text": "Two ways in: History is chronological, Songs is per-song \u2014 both land on Song detail."
+    },
+    {
+      "id": "note-import",
+      "x": 1470,
+      "y": -150,
+      "w": 400,
+      "text": "500 screenshots is a batch job: run it, then triage only what the reader flagged."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

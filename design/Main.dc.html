@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #f4f5f7; color: #16191d;
+      font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0d9488; } a:hover { color: #0f766e; }
+    .cap { font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #8b939e; }
+    .num { font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-variant-numeric: tabular-nums; }
+    .chip { font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+      border-radius: 3px; padding: 2px 6px; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; width: 390px; height: 844px; background: #f4f5f7; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 8px 0 16px; border-bottom: 1px solid #e0e3e8; background: #ffffff; flex-shrink: 0">
+    <span style="font-size: 17px; font-weight: 600; letter-spacing: -0.015em">History</span>
+    <div style="flex-grow: 1"></div>
+    <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 4px; color: #5f6873">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.2-4.2"></path></svg>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 4px; color: #5f6873">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"></path><path d="M6 12h12"></path><path d="M10 19h4"></path></svg>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 18px; padding: 13px 16px; border-bottom: 1px solid #e0e3e8; background: #ffffff; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span class="num" style="font-size: 19px; font-weight: 500; letter-spacing: -0.02em">517</span>
+      <span style="font-size: 11px; color: #8b939e">plays</span>
+    </div>
+    <div style="width: 1px; height: 28px; background: #e0e3e8"></div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span class="num" style="font-size: 19px; font-weight: 500; letter-spacing: -0.02em; color: #0d9488">38</span>
+      <span style="font-size: 11px; color: #8b939e">full combo</span>
+    </div>
+    <div style="width: 1px; height: 28px; background: #e0e3e8"></div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span class="num" style="font-size: 19px; font-weight: 500; letter-spacing: -0.02em; color: #0d9488">6</span>
+      <span style="font-size: 11px; color: #8b939e">all perfect</span>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #e0e3e8; background: #ffffff; flex-shrink: 0">
+    <div style="display: flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 4px; background: #16191d; color: #ffffff; font-size: 13px; font-weight: 500">All</div>
+    <div style="display: flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 4px; border: 1px solid #e0e3e8; color: #5f6873; font-size: 13px">Master</div>
+    <div style="display: flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 4px; border: 1px solid #e0e3e8; color: #5f6873; font-size: 13px">FC only</div>
+    <div style="flex-grow: 1"></div>
+    <div style="display: flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px; border-radius: 4px; border: 1px solid #e0e3e8; color: #5f6873; font-size: 13px">
+      Newest
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; background: #f4f5f7">
+      <span class="cap">Today</span>
+      <span class="num" style="font-size: 11px; color: #8b939e">3</span>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #eceef1; background: #ffffff">
+      <div style="width: 3px; border-radius: 2px; background: #a324d6; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1">透明なパレット</span>
+          <span class="chip" style="color: #a324d6; background: #a324d614">MAS 29</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span class="num" style="font-size: 14px; font-weight: 500; color: #7c5cd6">1001</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #c9439e">23</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #1e93c4; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #2e9e6b; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #6b7480">3</span>
+          <div style="flex-grow: 1"></div>
+          <span class="num" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em">97.5%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span class="num" style="font-size: 11.5px; color: #8b939e">21:04</span>
+          <span style="color: #cdd2da">·</span>
+          <span class="num" style="font-size: 11.5px; color: #8b939e">517,932</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #eceef1; background: #ffffff">
+      <div style="width: 3px; border-radius: 2px; background: #a324d6; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1">ジャンキーナイトタウンオーケストラ</span>
+          <span class="chip" style="color: #a324d6; background: #a324d614">MAS 28</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span class="num" style="font-size: 14px; font-weight: 500; color: #7c5cd6">892</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #c9439e">61</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #1e93c4">13</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #2e9e6b; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #6b7480">12</span>
+          <div style="flex-grow: 1"></div>
+          <span class="num" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em">91.2%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span class="num" style="font-size: 11.5px; color: #8b939e">20:51</span>
+          <span style="color: #cdd2da">·</span>
+          <span class="num" style="font-size: 11.5px; color: #8b939e">462,118</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #eceef1; background: #ffffff">
+      <div style="width: 3px; border-radius: 2px; background: #e0326a; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1">テオ</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #0d9488; border: 1px solid #0d9488; border-radius: 3px; padding: 1px 5px">FC</span><span class="chip" style="color: #e0326a; background: #e0326a14">EXP 26</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span class="num" style="font-size: 14px; font-weight: 500; color: #7c5cd6">720</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #c9439e">24</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #1e93c4; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #2e9e6b; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #6b7480; opacity: 0.45">0</span>
+          <div style="flex-grow: 1"></div>
+          <span class="num" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em">96.8%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span class="num" style="font-size: 11.5px; color: #8b939e">20:38</span>
+          <span style="color: #cdd2da">·</span>
+          <span class="num" style="font-size: 11.5px; color: #8b939e">874,205</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; background: #f4f5f7">
+      <span class="cap">Yesterday</span>
+      <span class="num" style="font-size: 11px; color: #8b939e">7</span>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #eceef1; background: #ffffff">
+      <div style="width: 3px; border-radius: 2px; background: #a324d6; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1">妄想感傷代償連盟</span>
+          <span class="chip" style="color: #a324d6; background: #a324d614">MAS 29</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span class="num" style="font-size: 14px; font-weight: 500; color: #7c5cd6">903</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #c9439e">55</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #1e93c4">6</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #2e9e6b">2</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #6b7480">9</span>
+          <div style="flex-grow: 1"></div>
+          <span class="num" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em">92.6%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span class="num" style="font-size: 11.5px; color: #8b939e">23:12</span>
+          <span style="color: #cdd2da">·</span>
+          <span class="num" style="font-size: 11.5px; color: #8b939e">409,596</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #eceef1; background: #ffffff">
+      <div style="width: 3px; border-radius: 2px; background: #d68000; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1">ロキ</span>
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #0d9488; border: 1px solid #0d9488; border-radius: 3px; padding: 1px 5px">AP</span><span class="chip" style="color: #d68000; background: #d6800014">HRD 19</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span class="num" style="font-size: 14px; font-weight: 500; color: #7c5cd6">512</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #c9439e; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #1e93c4; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #2e9e6b; opacity: 0.45">0</span><span style="font-size: 11px; color: #cdd2da">/</span><span class="num" style="font-size: 14px; font-weight: 500; color: #6b7480; opacity: 0.45">0</span>
+          <div style="flex-grow: 1"></div>
+          <span class="num" style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em">100%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px">
+          <span class="num" style="font-size: 11.5px; color: #8b939e">22:57</span>
+          <span style="color: #cdd2da">·</span>
+          <span class="num" style="font-size: 11.5px; color: #8b939e">936,470</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid #e0e3e8; background: #ffffff; flex-shrink: 0">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 60px; color: #8b939e">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
+      <span style="font-size: 10.5px; letter-spacing: 0.02em">Import</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 60px; color: #0d9488">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>
+      <span style="font-size: 10.5px; letter-spacing: 0.02em">History</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 60px; color: #8b939e">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+      <span style="font-size: 10.5px; letter-spacing: 0.02em">Songs</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 60px; color: #8b939e">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10.6 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 16.11 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.43 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span style="font-size: 10.5px; letter-spacing: 0.02em">Settings</span>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

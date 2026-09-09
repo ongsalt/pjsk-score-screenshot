@@ -1,10 +1,60 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/* Design tokens for the canvas at design/. Light, hairline-bordered, one accent;
+   numbers are always mono + tabular so columns line up. */
+@theme {
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-* {
-  /* teal-500 */
-  /* accent-color: oklch(70.4% 0.14 182.503); */
-  /* color-scheme: light dark; */
+  --color-canvas: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-sunken: #f8f9fa;
+  --color-line: #e0e3e8;
+  --color-line-soft: #eceef1;
+  --color-ink: #16191d;
+  --color-muted: #5f6873;
+  --color-faint: #8b939e;
+  --color-ghost: #cdd2da;
+  --color-accent: #0d9488;
+  --color-accent-soft: #f0f7f6;
+  --color-flag: #b45309;
+  --color-flag-line: #d9b48a;
+  --color-flag-soft: #fdf6ee;
+
+  /* judgement, darkened from the game's own labels for contrast on light */
+  --color-perfect: #7c5cd6;
+  --color-great: #c9439e;
+  --color-good: #1e93c4;
+  --color-bad: #2e9e6b;
+  --color-miss: #6b7480;
+
+  /* difficulty, from the pill colours sampled off the screenshots */
+  --color-easy: #3fa806;
+  --color-normal: #1e93c4;
+  --color-hard: #d68000;
+  --color-expert: #e0326a;
+  --color-master: #a324d6;
+  --color-append: #e565a8;
 }
 
+@layer base {
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* every figure in this app is meant to be compared down a column */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .cap {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+}
