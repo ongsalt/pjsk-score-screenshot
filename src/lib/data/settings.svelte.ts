@@ -10,12 +10,12 @@ const defaultSettings: Settings = {
 
 export const settings = new PersistedState("settings", defaultSettings);
 
-type ServerResource = {
+export type ServerResource = {
   musics: string;
   musicDifficulties: string;
 };
 
-const serverResources: Record<Settings["server"], ServerResource> = {
+export const serverResources: Record<Settings["server"], ServerResource> = {
   en: {
     musics: "https://sekai-world.github.io/sekai-master-db-en-diff/musics.json",
     musicDifficulties:

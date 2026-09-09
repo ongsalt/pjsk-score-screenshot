@@ -25,3 +25,6 @@ vite.config.ts.timestamp-*
 
 # Cloudflare
 .cloudflare
+# split model assets, regenerate with scripts/fetch-model.sh
+/.model-cache
+/static/ocr
