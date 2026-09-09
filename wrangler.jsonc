@@ -6,7 +6,7 @@
   "assets": {
     // "binding": "ASSETS",
     "directory": "build",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "404-page"
   },
   // "build": {
   //   "watch_dir": "./src",
@@ -16,5 +16,5 @@
   "route": {
     "pattern": "sekai.ongsa.lt",
     "custom_domain": true
-  },
+  }
 }
