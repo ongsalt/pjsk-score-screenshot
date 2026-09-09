@@ -61,6 +61,11 @@ export function dayLabel(timestamp: number) {
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
+/** for a title attribute - the exact moment behind a relative label */
+export function fullTimestamp(timestamp: number) {
+  return timestamp ? new Date(timestamp).toLocaleString() : "No timestamp recorded";
+}
+
 export function timeLabel(timestamp: number) {
   if (!timestamp) return "";
   return new Date(timestamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });

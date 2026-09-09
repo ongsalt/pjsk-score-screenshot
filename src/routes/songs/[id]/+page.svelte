@@ -7,18 +7,28 @@
     dayLabel,
     formatNumber,
     formatRate,
+    fullTimestamp,
     perfectRate,
   } from "$lib/data/summary";
-  import type { Difficulty } from "$lib/pipeline/regions";
-  import { PersistedState } from "runed";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
 
   let { data } = $props();
 
-  const selected = new PersistedState<Difficulty>("songsDifficulty", "master");
-
+  // ?d= keeps this shareable and survives a reload, and is what a history row links to
   const chart = $derived(
-    data.charts.find((it) => it.musicDifficulty === selected.current) ?? data.charts.at(-1),
+    data.charts.find((it) => it.musicDifficulty === page.url.searchParams.get("d")) ??
+      data.charts.find((it) => it.musicDifficulty === "master") ??
+      data.charts.at(-1),
   );
+
+  function select(difficulty: string) {
+    goto(`/songs/${data.music.id}?d=${difficulty}`, {
+      replaceState: true,
+      noScroll: true,
+      keepFocus: true,
+    });
+  }
 
   const records = $derived(chart ? getPlayRecordByChartId(chart.id) : []);
   const newest = $derived([...records].sort((a, b) => b.playedAt - a.playedAt));
@@ -67,17 +77,17 @@
   });
 </script>
 
-<Toolbar title={data.music.title} back="/songs" />
+<Toolbar title={data.music.title} back="/songs?d={chart?.musicDifficulty ?? 'master'}" />
 
-<div class="flex gap-1.5 px-4 py-3 border-b border-line bg-surface">
+<div class="flex gap-1.5 px-4 py-3 border-b border-line bg-surface overflow-x-auto">
   {#each data.charts as option}
     {@const active = option.musicDifficulty === chart?.musicDifficulty}
     <button
-      class="flex-1 flex flex-col items-center gap-1 py-2 rounded transition-colors"
+      class="shrink-0 flex-1 min-w-16 flex flex-col items-center gap-1 px-2 py-2 rounded transition-colors"
       style={active
         ? `border: 1px solid var(--color-${option.musicDifficulty}); background: color-mix(in srgb, var(--color-${option.musicDifficulty}) 6%, transparent)`
         : "border: 1px solid var(--color-line)"}
-      onclick={() => (selected.current = option.musicDifficulty)}
+      onclick={() => select(option.musicDifficulty)}
     >
       <span
         class="num text-[15px] {active ? 'font-semibold' : 'text-muted'}"
@@ -89,7 +99,7 @@
         class="text-[9.5px] font-semibold tracking-wider uppercase"
         style="color: var(--color-{option.musicDifficulty})"
       >
-        {option.musicDifficulty.slice(0, 3)}
+        {option.musicDifficulty}
       </span>
     </button>
   {/each}
@@ -163,7 +173,9 @@
 
   {#each newest as record}
     <div class="flex items-center gap-2.5 px-4 py-3 border-b border-line-soft bg-surface">
-      <span class="num text-[11.5px] text-faint w-12 shrink-0">{dayLabel(record.playedAt)}</span>
+      <span class="num text-[11.5px] text-faint w-12 shrink-0" title={fullTimestamp(record.playedAt)}>
+        {dayLabel(record.playedAt)}
+      </span>
       <div class="flex-1 min-w-0">
         <Judgement result={record.result} size="sm" />
       </div>

@@ -23,6 +23,9 @@ export interface PlayRecord {
     wrongWay?: number;
   };
   playedAt: number;
+  /** sha-256 (truncated) of the screenshot this came from, so re-importing the
+   *  same file is caught even though the image itself is never kept */
+  sourceHash?: string;
 
   // createdAt: number;
 }
@@ -74,6 +77,10 @@ export function getPlayRecordByChartId(id: number): PlayRecord[] {
 
 export function hasPlayedSong(id: number) {
   return playRecords().some((it) => it.songId === id);
+}
+
+export function hasSourceHash(hash: string) {
+  return hash !== "" && playRecords().some((it) => it.sourceHash === hash);
 }
 
 export function addPlayRecord(record: Omit<PlayRecord, "id">) {

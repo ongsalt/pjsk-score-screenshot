@@ -7,11 +7,11 @@
     clearMark,
     formatNumber,
     formatRate,
+    fullTimestamp,
     groupByDay,
     perfectRate,
     timeLabel,
   } from "$lib/data/summary";
-  import type { Difficulty } from "$lib/pipeline/regions";
 
   const FILTERS = [
     { id: "all", label: "All" },
@@ -47,14 +47,6 @@
     return musicRepository.charts.find((chart) => chart.id === chartId);
   }
 
-  const SHORT: Record<Difficulty, string> = {
-    easy: "ESY",
-    normal: "NOR",
-    hard: "HRD",
-    expert: "EXP",
-    master: "MAS",
-    append: "APD",
-  };
 </script>
 
 <Toolbar title="History" />
@@ -87,7 +79,7 @@
 
 {#each groups as group}
   <div class="flex items-center justify-between px-4 pt-3 pb-2">
-    <span class="cap">{group.label}</span>
+    <span class="cap" title={fullTimestamp(group.records[0].playedAt)}>{group.label}</span>
     <span class="num text-[11px] text-faint">{group.records.length}</span>
   </div>
 
@@ -97,7 +89,7 @@
     {@const difficulty = chart?.musicDifficulty ?? "master"}
     {@const mark = clearMark(record.result)}
     <a
-      href="/songs/{record.songId}"
+      href="/songs/{record.songId}?d={difficulty}"
       class="flex gap-3 px-4 py-3.5 border-b border-line-soft bg-surface active:bg-sunken"
     >
       <div class="w-[3px] rounded-sm shrink-0" style="background: var(--color-{difficulty})"></div>
@@ -115,7 +107,7 @@
             class="text-[10px] font-semibold tracking-wider rounded-sm px-1.5 py-0.5"
             style="color: var(--color-{difficulty}); background: color-mix(in srgb, var(--color-{difficulty}) 8%, transparent)"
           >
-            {SHORT[difficulty]}
+            {difficulty.toUpperCase()}
             {chart?.playLevel ?? ""}
           </span>
         </div>
@@ -129,7 +121,9 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <span class="num text-[11.5px] text-faint">{timeLabel(record.playedAt)}</span>
+          <span class="num text-[11.5px] text-faint" title={fullTimestamp(record.playedAt)}>
+            {timeLabel(record.playedAt)}
+          </span>
           <span class="text-ghost">·</span>
           <span class="num text-[11.5px] text-faint">{formatNumber(record.result.score)}</span>
         </div>
