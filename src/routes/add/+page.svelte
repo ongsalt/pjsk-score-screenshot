@@ -4,6 +4,7 @@
   import { hashFile, pendingQueue } from "$lib/data/pending.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
   import { extractResult, getMangaOcr, type ExtractedResult } from "$lib/pipeline";
+  import { capturedAt } from "$lib/pipeline/captured-at";
   import type { NumericField } from "$lib/pipeline/regions";
 
   const KEEP: NumericField[] = [
@@ -53,13 +54,17 @@
     for (const file of files) {
       // one file at a time: 500 decoded screenshots will not fit in memory
       try {
-        const hash = await hashFile(file);
+        // read once, used for both the dedup hash and the capture time
+        const bytes = await file.arrayBuffer();
+        const hash = await hashFile(bytes);
         if (hash && (playRecords.hasSourceHash(hash) || pendingQueue.entries.some((entry) => entry.sourceHash === hash))) {
           tally.duplicate += 1;
           progress.done += 1;
           continue;
         }
 
+        // when the shot was taken, not when it was copied off the phone
+        const { at: playedAt } = await capturedAt(file, bytes);
         const result = await extractResult(file);
         const match = musicRepository.matchChart(result.title, result.noteCount, result.difficulty);
         const chart = match?.confident ? match.chart : undefined;
@@ -69,7 +74,7 @@
           playRecords.add({
             songId: match.music.id,
             chartId: chart.id,
-            playedAt: file.lastModified || Date.now(),
+            playedAt,
             sourceHash: hash || undefined,
             result: {
               score: result.score ?? undefined,
@@ -92,7 +97,7 @@
             {
               fileName: file.name,
               reason: reason || "No matching chart",
-              playedAt: file.lastModified || Date.now(),
+              playedAt,
               sourceHash: hash,
               musicId: match?.confident ? match.music.id : null,
               difficulty: chart?.musicDifficulty ?? result.difficulty,
@@ -108,7 +113,7 @@
           {
             fileName: file.name,
             reason: "Could not read this image",
-            playedAt: file.lastModified || Date.now(),
+            playedAt: (await capturedAt(file, await file.arrayBuffer())).at,
             sourceHash: "",
             musicId: null,
             difficulty: null,

@@ -89,9 +89,9 @@ class PendingQueue {
 export const pendingQueue = new PendingQueue();
 
 /** truncated sha-256 of the file bytes - enough to spot the same screenshot twice */
-export async function hashFile(file: Blob): Promise<string> {
+export async function hashFile(bytes: ArrayBuffer): Promise<string> {
   try {
-    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
     return [...new Uint8Array(digest)]
       .slice(0, 8)
       .map((byte) => byte.toString(16).padStart(2, "0"))
