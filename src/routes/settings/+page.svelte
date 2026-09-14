@@ -1,6 +1,7 @@
 <script lang="ts">
   import Toolbar from "$lib/components/shell/toolbar.svelte";
-  import { playRecords } from "$lib/data/play-record.svelte";
+  import { pendingQueue } from "$lib/data/pending.svelte";
+  import { exportSchema, playRecords } from "$lib/data/play-record.svelte";
   import { settings } from "$lib/data/settings.svelte";
   import { bestDevice, hasWebGPU, hasWebNN } from "$lib/pipeline/manga-ocr";
 
@@ -15,6 +16,51 @@
     { id: "webgpu", label: "WebGPU", available: hasWebGPU },
     { id: "wasm", label: "WASM", available: () => true },
   ] as const;
+
+  let notice: string | null = $state(null);
+
+  async function importJson(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    let parsed;
+    try {
+      parsed = exportSchema.safeParse(JSON.parse(await file.text()));
+    } catch {
+      notice = "That is not a JSON file.";
+      return;
+    }
+    if (!parsed.success) {
+      notice = "That file is not an export from this app.";
+      return;
+    }
+
+    const { server, records } = parsed.data;
+    const { added, skipped } = playRecords.import(records, server);
+    notice =
+      `${added} ${added === 1 ? "play" : "plays"} added to ${server.toUpperCase()}` +
+      (skipped ? `, ${skipped} already here` : "") +
+      (server !== settings.current.server ? ` — switch server to see them` : "");
+  }
+
+  function clearRecords() {
+    const server = settings.current.server;
+    const count = playRecords.count;
+    const pending = pendingQueue.count;
+    const what = [
+      `${count} ${count === 1 ? "play" : "plays"}`,
+      pending ? `${pending} waiting for review` : "",
+    ]
+      .filter(Boolean)
+      .join(" and ");
+    if (!confirm(`Delete ${what} on ${server.toUpperCase()}? This cannot be undone.`)) return;
+
+    playRecords.clear(server);
+    pendingQueue.clear();
+    notice = `Cleared ${server.toUpperCase()}.`;
+  }
 
   function exportJson() {
     const payload = {
@@ -111,19 +157,42 @@
     <div
       class="flex flex-col rounded-md border border-line bg-surface overflow-hidden"
     >
-      <div class="flex items-center justify-between gap-3 px-3.5 py-3">
+      <div class="flex items-center justify-between gap-3 px-3.5 py-3 border-b border-line-soft">
         <div class="flex flex-col gap-0.5">
           <span class="text-sm">Records on this device</span>
-          <span class="num text-xs text-faint">{playRecords.count} plays</span>
+          <span class="num text-xs text-faint">
+            {playRecords.count} plays on {settings.current.server.toUpperCase()}
+          </span>
+        </div>
+        <div class="flex gap-1.5 shrink-0">
+          <label class="h-9 px-3 flex items-center rounded border border-line text-[13px] text-muted cursor-pointer">
+            <input type="file" accept="application/json,.json" class="hidden" onchange={importJson} />
+            Import
+          </label>
+          <button
+            class="h-9 px-3 rounded border border-line text-[13px] text-muted"
+            onclick={exportJson}
+          >
+            Export
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-3.5 py-3">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-sm">Delete everything on {settings.current.server.toUpperCase()}</span>
+          <span class="text-xs text-faint">Plays and anything waiting for review. Export first.</span>
         </div>
         <button
-          class="h-9 px-3 rounded border border-line text-[13px] text-muted"
-          onclick={exportJson}
+          class="h-9 px-3 rounded border border-red-300 text-[13px] text-red-600 shrink-0"
+          onclick={clearRecords}
         >
-          Export JSON
+          Delete
         </button>
       </div>
     </div>
+    {#if notice}
+      <p class="text-xs text-muted px-1">{notice}</p>
+    {/if}
   </section>
 
   <div class="flex items-center justify-between">

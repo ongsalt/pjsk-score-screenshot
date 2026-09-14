@@ -1,4 +1,5 @@
 import { PersistedState } from "runed";
+import { z } from "zod";
 import { serverResources, settings } from "./settings.svelte";
 
 // free tier d1 is more than enough for this
@@ -105,6 +106,72 @@ class PlayRecords {
     const store = this.#store();
     store.current = store.current.filter((record) => record.id !== id);
   }
+
+  /** everything on one server, gone. The caller confirms; this does not. */
+  clear(server: Server = settings.current.server) {
+    this.#store(server).current = [];
+  }
+
+  /**
+   * Merge an export into a server's store. Ids are per device, so they are
+   * reassigned; a record already here (same screenshot hash, or failing that
+   * the same chart, time and score) is skipped rather than doubled.
+   */
+  import(records: PlayRecord[], server: Server): { added: number; skipped: number } {
+    const store = this.#store(server);
+    const existing = store.current;
+    const seen = new Set(existing.map(identity));
+    let nextId = existing.reduce((max, it) => Math.max(max, it.id), 0) + 1;
+
+    const added: PlayRecord[] = [];
+    for (const record of records) {
+      const key = identity(record);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      added.push({ ...record, id: nextId++ });
+    }
+
+    store.current = [...existing, ...added];
+    return { added: added.length, skipped: records.length - added.length };
+  }
 }
+
+/** what makes two records the same play, across devices and re-imports */
+function identity(record: PlayRecord) {
+  return record.sourceHash
+    ? `hash:${record.sourceHash}`
+    : `play:${record.chartId}/${record.playedAt}/${record.result.score ?? ""}`;
+}
+
+/** the export file, validated before a single record is touched */
+export const exportSchema = z.object({
+  server: z.enum(["jp", "en"]),
+  exportedAt: z.string().optional(),
+  records: z.array(
+    z.object({
+      id: z.number(),
+      songId: z.number(),
+      chartId: z.number(),
+      playedAt: z.number(),
+      sourceHash: z.string().optional(),
+      result: z.object({
+        score: z.number().optional(),
+        scoreRank: z.string().optional(),
+        highScore: z.number().optional(),
+        maxCombo: z.number().optional(),
+        perfect: z.number().optional(),
+        great: z.number().optional(),
+        good: z.number().optional(),
+        bad: z.number().optional(),
+        miss: z.number().optional(),
+        late: z.number().optional(),
+        early: z.number().optional(),
+        wrongWay: z.number().optional(),
+      }),
+    }),
+  ),
+});
+
+export type RecordExport = z.infer<typeof exportSchema>;
 
 export const playRecords = new PlayRecords();
