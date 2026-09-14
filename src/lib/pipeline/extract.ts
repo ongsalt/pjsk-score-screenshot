@@ -1,11 +1,15 @@
-// Screenshot -> result fields. Numbers come from template matching (digits.ts),
-// the song title from manga-ocr, and the difficulty from the colour of the pill
-// under the title. Nothing here talks to the music database - matching a title
-// to an actual chart is musicRepository's job.
+// Screenshot -> result fields. Numbers come from template matching (digits.ts)
+// and the difficulty from the colour of the pill under the title; that is all
+// extractResult() does, and it needs no model. The song title is a separate,
+// deliberately optional step (readTitle) because it is the expensive and least
+// reliable one: it loads 112 MiB of manga-ocr, and the judgement total plus
+// difficulty plus level already identifies most charts without it.
+//
+// Nothing here talks to the music database - matching is musicRepository's job.
 
 import { findJudgementRows } from "./anchors";
 import { readDigits, regionContrast, MIN_CONFIDENCE } from "./digits";
-import { getMangaOcr } from "./manga-ocr";
+import { getMangaOcr, type MangaOcrOptions } from "./manga-ocr";
 import {
   ABSENT_OK_FIELDS,
   CALIBRATED_PERFECT_Y,
@@ -43,7 +47,6 @@ export interface ExtractedResult {
   difficulty: Difficulty | null;
   /** 0..1, gap between the best and second best pill colour */
   difficultyConfidence: number;
-  title: string;
   /** perfect + great + good + bad + miss, used to pin down which chart this is */
   noteCount: number | null;
   /** false when the judgement rows could not be located and defaults were used */
@@ -54,15 +57,8 @@ export interface ExtractedResult {
   needsReview: NumericField[];
 }
 
-export interface ExtractOptions {
-  /** skip the 112 MiB model and leave the title blank */
-  readTitle?: boolean;
-}
-
-export async function extractResult(
-  source: ImageBitmapSource,
-  options: ExtractOptions = {},
-): Promise<ExtractedResult> {
+/** everything the digits and the pill colour give - no model involved */
+export async function extractResult(source: ImageBitmapSource): Promise<ExtractedResult> {
   const image = await toImageData(source);
 
   const values = {} as Record<NumericField, number | null>;
@@ -115,14 +111,12 @@ export async function extractResult(
       : null;
 
   const difficulty = readDifficulty(image);
-  const title = options.readTitle === false ? "" : await readTitle(image);
 
   return {
     ...values,
     hasJudgementDetail,
     difficulty: difficulty.value,
     difficultyConfidence: difficulty.confidence,
-    title,
     noteCount,
     anchored: anchor !== null,
     confidence,
@@ -177,10 +171,14 @@ function chromaDistance(a: [number, number, number], b: [number, number, number]
   return Math.sqrt(sum);
 }
 
-async function readTitle(image: ImageData) {
-  const crop = tightCrop(image, TITLE);
+/**
+ * The song title via manga-ocr. Loads the model on first use, so only call it
+ * when the numbers could not identify the chart on their own.
+ */
+export async function readTitle(source: ImageBitmapSource, options?: MangaOcrOptions) {
+  const crop = tightCrop(await toImageData(source), TITLE);
   if (!crop) return "";
-  const ocr = await getMangaOcr();
+  const ocr = await getMangaOcr(options);
   return await ocr.recognize(crop);
 }
 

@@ -4,7 +4,7 @@
   import { settings } from "$lib/data/settings.svelte";
   import { hashFile, pendingQueue } from "$lib/data/pending.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
-  import { extractResult, getMangaOcr, type ExtractedResult } from "$lib/pipeline";
+  import { extractResult, readTitle, toImageData, type ExtractedResult } from "$lib/pipeline";
   import { capturedAt } from "$lib/pipeline/captured-at";
   import type { NumericField } from "$lib/pipeline/regions";
 
@@ -26,7 +26,7 @@
   let phase: "idle" | "running" | "done" = $state("idle");
   let progress = $state({ done: 0, total: 0, startedAt: 0 });
   let model: { loaded: number; total: number } | null = $state(null);
-  let tally = $state({ saved: 0, duplicate: 0 });
+  let tally = $state({ saved: 0, duplicate: 0, byNumbers: 0 });
 
 
   // flagged screenshots persist on disk; read this queue's back after a reload
@@ -48,16 +48,11 @@
   async function run(files: File[]) {
     phase = "running";
     progress = { done: 0, total: files.length, startedAt: Date.now() };
-    tally = { saved: 0, duplicate: 0 };
+    tally = { saved: 0, duplicate: 0, byNumbers: 0 };
 
-    await Promise.all([
-      musicRepository.load(),
-      getMangaOcr({
-        device: settings.current.device === "auto" ? undefined : settings.current.device,
-        onProgress: (p) => (model = { loaded: p.loaded, total: p.total }),
-      }),
-    ]);
-    model = null;
+    // the model is NOT loaded here: most screenshots are identified from their
+    // numbers alone, and it is only pulled in when a title is actually needed
+    await musicRepository.load();
 
     for (const file of files) {
       // one file at a time: 500 decoded screenshots will not fit in memory
@@ -73,13 +68,23 @@
 
         // when the shot was taken, not when it was copied off the phone
         const { at: playedAt } = await capturedAt(file, bytes);
-        const result = await extractResult(file);
-        const match = musicRepository.matchChart(
-          result.title,
-          result.noteCount,
-          result.difficulty,
-          result.level,
-        );
+
+        // decode once; the digits and, if it comes to that, the title read from it
+        const image = await toImageData(file);
+        const result = await extractResult(image);
+
+        // numbers first: judgement total + difficulty + level is the chart's
+        // fingerprint for most of the database, and costs no model at all
+        let match = musicRepository.matchFingerprint(result.noteCount, result.difficulty, result.level);
+        let title = "";
+        if (match) {
+          tally.byNumbers += 1;
+        } else {
+          // a tie or a missing number: now the title earns its 112 MiB
+          title = await titleOf(image);
+          match = musicRepository.matchChart(title, result.noteCount, result.difficulty);
+        }
+
         const chart = match?.confident ? match.chart : undefined;
         const reason = reasonFor(result, match);
 
@@ -114,7 +119,7 @@
               sourceHash: hash,
               musicId: match?.confident ? match.music.id : null,
               difficulty: chart?.musicDifficulty ?? result.difficulty,
-              titleQuery: match?.confident ? match.music.title : result.title,
+              titleQuery: match?.music.title ?? title,
               values: pickValues(result),
               lowConfidence: result.needsReview ?? [],
             },
@@ -142,6 +147,16 @@
     }
 
     phase = "done";
+  }
+
+  /** OCR the title; the first call downloads the model and shows its progress */
+  async function titleOf(image: ImageData) {
+    const text = await readTitle(image, {
+      device: settings.current.device === "auto" ? undefined : settings.current.device,
+      onProgress: (p) => (model = { loaded: p.loaded, total: p.total }),
+    });
+    model = null;
+    return text;
   }
 
   function reasonFor(result: ExtractedResult, match: ChartMatch | null) {
@@ -226,7 +241,9 @@
     <div class="grid grid-cols-3 gap-2.5">
       <div class="flex flex-col gap-1 p-3.5 rounded-md border border-line bg-surface">
         <span class="num text-[22px] font-medium tracking-tight">{tally.saved}</span>
-        <span class="text-[11.5px] text-faint">saved</span>
+        <span class="text-[11.5px] text-faint">
+          saved{#if tally.byNumbers} · <span class="num">{tally.byNumbers}</span> without OCR{/if}
+        </span>
       </div>
       <div
         class="flex flex-col gap-1 p-3.5 rounded-md border

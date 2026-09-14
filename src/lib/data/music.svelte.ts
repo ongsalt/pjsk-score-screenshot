@@ -277,24 +277,52 @@ class MusicRepository {
   }
 
   /**
-   * Best (music, chart) for what the screenshot reader produced.
+   * Identify the chart from the numbers alone: (judgement total, difficulty,
+   * level) is unique for 82% of charts, and reading those costs nothing. This
+   * runs BEFORE any title OCR - when it returns a match, the model is never
+   * loaded for that screenshot. Returns null when the key is missing or shared
+   * by several charts, and matchChart() then breaks the tie with the title.
+   */
+  matchFingerprint(
+    noteCount?: number | null,
+    difficulty?: DifficultyName | null,
+    level?: number | null,
+  ): ChartMatch | null {
+    const [chart, ...rest] = this.#chartsByFingerprint(noteCount, difficulty, level);
+    if (!chart || rest.length > 0) return null;
+    const music = this.byId.get(chart.musicId);
+    if (!music) return null;
+    return { music, chart, exact: false, matchedBy: "fingerprint", confident: true };
+  }
+
+  #chartsByFingerprint(noteCount?: number | null, difficulty?: DifficultyName | null, level?: number | null) {
+    if (!noteCount) return [];
+    return (this.#slot().chartsByNotes.get(noteCount) ?? []).filter(
+      (chart) =>
+        (!difficulty || chart.musicDifficulty === difficulty) &&
+        (!level || chart.playLevel === level),
+    );
+  }
+
+  /**
+   * Break a tie with the OCR'd title. Called only when matchFingerprint() could
+   * not decide. The judgement total still outranks the title: a title that is
+   * only roughly right lands on the right chart as long as its note count
+   * agrees.
    *
-   * The judgement total is the strongest signal - it equals the chart's note
-   * count, so a title that is only roughly right still lands on the correct
-   * chart. When the title is unreadable altogether, (notes, difficulty, level)
-   * alone identifies 82% of charts outright, and that is the fallback.
-   *
-   * An exact title with a note count that matches NONE of the song's charts is
-   * deliberately not confident: it means a misread digit or a chart the database
-   * has since revised, and either way a person should look before it is saved.
+   * An exact title whose note count matches NONE of the song's charts is
+   * deliberately not confident: it means a misread digit or a chart the game
+   * has revised since the database was built, and either way a person should
+   * look before it is saved.
    */
   matchChart(
     title: string,
     noteCount?: number | null,
     difficulty?: DifficultyName | null,
-    level?: number | null,
   ): ChartMatch | null {
     const candidates = this.search(title, 12);
+    if (candidates.length === 0) return null;
+
     const key = normalizeTitle(title);
     const romajiKey = isLatin(title) ? looseRomaji(key) : "";
 
@@ -320,37 +348,9 @@ class MusicRepository {
       }
     });
 
-    if (best && (best as ChartMatch).confident) {
-      const { rank: _rank, ...match } = best as ChartMatch & { rank: number };
-      return match;
-    }
-
-    // title got nowhere useful; let the numbers identify the chart on their own
-    const fingerprint = this.#byFingerprint(noteCount, difficulty, level);
-    if (fingerprint) {
-      return {
-        music: this.byId.get(fingerprint.musicId)!,
-        chart: fingerprint,
-        exact: false,
-        matchedBy: "fingerprint",
-        confident: true,
-      };
-    }
-
     if (!best) return null;
     const { rank: _rank, ...match } = best as ChartMatch & { rank: number };
     return match;
-  }
-
-  /** the one chart with this note count, difficulty and level - or nothing */
-  #byFingerprint(noteCount?: number | null, difficulty?: DifficultyName | null, level?: number | null) {
-    if (!noteCount) return undefined;
-    const matches = (this.#slot().chartsByNotes.get(noteCount) ?? []).filter(
-      (chart) =>
-        (!difficulty || chart.musicDifficulty === difficulty) &&
-        (!level || chart.playLevel === level),
-    );
-    return matches.length === 1 ? matches[0] : undefined;
   }
 }
 

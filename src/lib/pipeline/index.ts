@@ -1,7 +1,7 @@
 import { MangaOcr, type MangaOcrOptions } from "./manga-ocr";
 
 export { MangaOcr, getMangaOcr, type MangaOcrOptions } from "./manga-ocr";
-export { extractResult, type ExtractedResult } from "./extract";
+export { extractResult, readTitle, toImageData, type ExtractedResult } from "./extract";
 export { readDigits, regionContrast, MIN_CONFIDENCE } from "./digits";
 export type { Difficulty, NumericField } from "./regions";
 export type { LoadProgress, Manifest, ModelConfig } from "./loader";
