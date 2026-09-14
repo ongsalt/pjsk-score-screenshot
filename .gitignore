@@ -28,3 +28,6 @@ vite.config.ts.timestamp-*
 # split model assets, regenerate with scripts/fetch-model.sh
 /.model-cache
 /static/ocr
+
+/example/more/
+/example/truth.json

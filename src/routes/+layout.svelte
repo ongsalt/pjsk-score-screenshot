@@ -2,8 +2,18 @@
   import favicon from "$lib/assets/favicon.svg";
   import "./layout.css";
   import Nav from "$lib/components/shell/nav.svelte";
+  import { musicRepository } from "$lib/data/music.svelte";
+  import { settings } from "$lib/data/settings.svelte";
+  import { untrack } from "svelte";
 
   let { children } = $props();
+
+  // song and chart ids only mean anything within one server, so switching has to
+  // pull that server's database - load() itself is a no-op when it is unchanged
+  $effect(() => {
+    settings.current.server;
+    untrack(() => musicRepository.load());
+  });
 </script>
 
 <svelte:head>

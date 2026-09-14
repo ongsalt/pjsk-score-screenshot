@@ -108,8 +108,13 @@
       rows.push({ music, chart, records, best, rate });
     }
 
-    rows.sort((a, b) => (b.rate ?? -1) - (a.rate ?? -1));
-    return { rows, byMusic: new Map(rows.map((row) => [row.music.id, row])) };
+    // both orders, built once: browsing every song wants the database's own
+    // order, while the played-only view is a ranking of how you did
+    return {
+      rows,
+      byRate: [...rows].sort((a, b) => (b.rate ?? -1) - (a.rate ?? -1)),
+      byMusic: new Map(rows.map((row) => [row.music.id, row])),
+    };
   });
 
   /**
@@ -117,7 +122,9 @@
    * way to put the song you actually typed ahead of the ones that merely contain
    * it ("teo" -> TEO, not METEOR), and re-sorting the hits by rate here buried
    * an exact title somewhere in the middle of the list. Only the unsearched list
-   * is ranked by rate.
+   * is ranked, and only when it is filtered to what you have played - showing
+   * every song sorted by rate would shuffle the played ones to the top and make
+   * the full list impossible to browse.
    */
   const rows = $derived.by(() => {
     const base = query
@@ -125,7 +132,9 @@
           .filter(query)
           .map((music) => ranked.byMusic.get(music.id))
           .filter((row) => row !== undefined)
-      : ranked.rows;
+      : onlyPlayed
+        ? ranked.byRate
+        : ranked.rows;
 
     return onlyPlayed ? base.filter((row) => row.records.length > 0) : base;
   });

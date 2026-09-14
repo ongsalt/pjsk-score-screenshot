@@ -43,8 +43,12 @@ export interface ChartMatch {
   chart?: Chart;
   /** the title matched a song exactly, not just closely */
   exact: boolean;
-  /** whether the note count picked the chart, or we fell back to the pill colour */
-  matchedBy: "noteCount" | "difficulty" | "none";
+  /**
+   * how the chart was chosen: the judgement total under a title hit, the
+   * (notes, difficulty, level) fingerprint alone when the title was unreadable,
+   * or just the pill colour as a last resort
+   */
+  matchedBy: "noteCount" | "fingerprint" | "difficulty" | "none";
   /**
    * Good enough to fill the form in for you. A weak title match still comes back
    * as the best guess, but the UI leaves the choice to you rather than
@@ -62,54 +66,97 @@ export function normalizeTitle(value: string) {
     .replace(/[^\p{Letter}\p{Number}]/gu, "");
 }
 
-class MusicRepository {
+type Server = keyof typeof serverResources;
+
+/**
+ * Everything belonging to one server: its songs, its charts and its search
+ * index. Song and chart ids only mean anything inside one of these, so they are
+ * never mixed - and keeping a slot per server makes switching back instant
+ * rather than a refetch.
+ */
+class ServerData {
   musics: Music[] = $state([]);
   charts: Chart[] = $state([]);
   byId = new SvelteMap<number, Music>();
   /** charts by their own id - the history feed looks up one per record */
   chartById = new SvelteMap<number, Chart>();
-  loading = $state(false);
-  error: string | null = $state(null);
-  loadedServer: string | null = $state(null);
-
+  chartsByMusic: Map<number, Chart[]> = $state(new Map());
+  /** charts by total note count - the judgement sum is a fingerprint for the chart */
+  chartsByNotes: Map<number, Chart[]> = $state(new Map());
   /** normalized title / kana / romaji per song id, for exact-match checks */
-  #searchable: Map<number, Searchable> = $state(new Map());
+  searchable: Map<number, Searchable> = $state(new Map());
   /** flexsearch over titles, kana readings, romaji and credits */
-  #index: Index | null = $state(null);
+  index: Index | null = $state(null);
 
-  #chartsByMusic = $derived.by(() => {
-    const map = new Map<number, Chart[]>();
-    for (const chart of this.charts) {
-      const list = map.get(chart.musicId);
-      if (list) list.push(chart);
-      else map.set(chart.musicId, [chart]);
+  loading = $state(false);
+  loaded = $state(false);
+  error: string | null = $state(null);
+  /** this slot's own in-flight fetch, so two servers can never collide */
+  pending: Promise<void> | null = null;
+}
+
+class MusicRepository {
+  #slots = new SvelteMap<Server, ServerData>();
+
+  /** the slot for a server, created empty on first use */
+  #slot(server: Server = settings.current.server): ServerData {
+    let slot = this.#slots.get(server);
+    if (!slot) {
+      slot = new ServerData();
+      this.#slots.set(server, slot);
     }
-    return map;
-  });
+    return slot;
+  }
 
-  #pending: Promise<void> | null = null;
+  get musics() {
+    return this.#slot().musics;
+  }
 
-  /** fetches once per server; call it again after switching servers */
-  load(): Promise<void> {
-    const server = settings.current.server;
-    if (this.loadedServer === server && !this.error) return Promise.resolve();
-    if (this.#pending) return this.#pending;
+  get charts() {
+    return this.#slot().charts;
+  }
 
-    this.#pending = this.#fetch(server).finally(() => {
-      this.#pending = null;
+  get byId() {
+    return this.#slot().byId;
+  }
+
+  get chartById() {
+    return this.#slot().chartById;
+  }
+
+  get loading() {
+    return this.#slot().loading;
+  }
+
+  get error() {
+    return this.#slot().error;
+  }
+
+  get loaded() {
+    return this.#slot().loaded;
+  }
+
+  /** fetches a server's database once; a no-op once that slot is filled */
+  load(server: Server = settings.current.server): Promise<void> {
+    const slot = this.#slot(server);
+    if (slot.loaded && !slot.error) return Promise.resolve();
+
+    slot.pending ??= this.#fetch(server, slot).finally(() => {
+      slot.pending = null;
     });
-    return this.#pending;
+    return slot.pending;
   }
 
-  /** force a re-fetch of the current server, ignoring the cached load */
+  /** force a re-fetch of the current server, ignoring what the slot holds */
   refresh(): Promise<void> {
-    this.loadedServer = null;
-    return this.load();
+    const server = settings.current.server;
+    this.#slot(server).loaded = false;
+    return this.load(server);
   }
 
-  async #fetch(server: keyof typeof serverResources) {
-    this.loading = true;
-    this.error = null;
+  async #fetch(server: Server, slot: ServerData) {
+    slot.loading = true;
+    slot.error = null;
 
     try {
       const resource = serverResources[server];
@@ -118,24 +165,37 @@ class MusicRepository {
         fetch(resource.musicDifficulties).then((response) => response.json() as Promise<Chart[]>),
       ]);
 
-      this.musics = musics;
-      this.charts = charts;
-      this.byId = new SvelteMap(musics.map((music) => [music.id, music]));
-      this.chartById = new SvelteMap(charts.map((chart) => [chart.id, chart]));
+      const chartsByMusic = new Map<number, Chart[]>();
+      const chartsByNotes = new Map<number, Chart[]>();
+      for (const chart of charts) {
+        const byMusic = chartsByMusic.get(chart.musicId);
+        if (byMusic) byMusic.push(chart);
+        else chartsByMusic.set(chart.musicId, [chart]);
+        const byNotes = chartsByNotes.get(chart.totalNoteCount);
+        if (byNotes) byNotes.push(chart);
+        else chartsByNotes.set(chart.totalNoteCount, [chart]);
+      }
+
+      slot.musics = musics;
+      slot.charts = charts;
+      slot.byId = new SvelteMap(musics.map((music) => [music.id, music]));
+      slot.chartById = new SvelteMap(charts.map((chart) => [chart.id, chart]));
+      slot.chartsByMusic = chartsByMusic;
+      slot.chartsByNotes = chartsByNotes;
       // build the index now, while the page is still showing a loading state -
       // deferring it to the first keystroke costs ~100ms right when someone is
       // typing (717 songs, tokenize "full")
-      this.#buildIndex(musics);
-      this.loadedServer = server;
+      this.#buildIndex(musics, slot);
+      slot.loaded = true;
     } catch (cause) {
-      this.error = cause instanceof Error ? cause.message : String(cause);
+      slot.error = cause instanceof Error ? cause.message : String(cause);
       throw cause;
     } finally {
-      this.loading = false;
+      slot.loading = false;
     }
   }
 
-  #buildIndex(musics: Music[]) {
+  #buildIndex(musics: Music[], slot: ServerData) {
     const index = new Index({ tokenize: "full" });
     const searchable = new Map<number, Searchable>();
 
@@ -159,12 +219,12 @@ class MusicRepository {
       );
     }
 
-    this.#searchable = searchable;
-    this.#index = index;
+    slot.searchable = searchable;
+    slot.index = index;
   }
 
   chartsFor(musicId: number): Chart[] {
-    return this.#chartsByMusic.get(musicId) ?? [];
+    return this.#slot().chartsByMusic.get(musicId) ?? [];
   }
 
   chartOf(musicId: number, difficulty: DifficultyName) {
@@ -181,7 +241,7 @@ class MusicRepository {
     const needle = query.trim();
     if (!needle) return [];
 
-    const index = this.#index;
+    const index = this.#slot().index;
     if (!index) return [];
 
     const romajiNeedle = isLatin(needle) ? looseRomaji(normalizeTitle(needle)) : "";
@@ -207,7 +267,7 @@ class MusicRepository {
   }
 
   #isExact(id: number, key: string, romajiKey: string) {
-    const normalized = this.#searchable.get(id);
+    const normalized = this.#slot().searchable.get(id);
     if (!normalized) return false;
     return (
       key === normalized.title ||
@@ -217,14 +277,24 @@ class MusicRepository {
   }
 
   /**
-   * Best (music, chart) for an OCR'd title. The judgement total is the strong
-   * signal - it equals the chart's note count - so a title that is only roughly
-   * right still lands on the correct chart.
+   * Best (music, chart) for what the screenshot reader produced.
+   *
+   * The judgement total is the strongest signal - it equals the chart's note
+   * count, so a title that is only roughly right still lands on the correct
+   * chart. When the title is unreadable altogether, (notes, difficulty, level)
+   * alone identifies 82% of charts outright, and that is the fallback.
+   *
+   * An exact title with a note count that matches NONE of the song's charts is
+   * deliberately not confident: it means a misread digit or a chart the database
+   * has since revised, and either way a person should look before it is saved.
    */
-  matchChart(title: string, noteCount?: number | null, difficulty?: DifficultyName | null): ChartMatch | null {
+  matchChart(
+    title: string,
+    noteCount?: number | null,
+    difficulty?: DifficultyName | null,
+    level?: number | null,
+  ): ChartMatch | null {
     const candidates = this.search(title, 12);
-    if (candidates.length === 0) return null;
-
     const key = normalizeTitle(title);
     const romajiKey = isLatin(title) ? looseRomaji(key) : "";
 
@@ -241,20 +311,46 @@ class MusicRepository {
 
       const chart = byNotes ?? byDifficulty;
       const matchedBy: ChartMatch["matchedBy"] = byNotes ? "noteCount" : byDifficulty ? "difficulty" : "none";
-      // the note count is the chart's fingerprint, so it outranks search position
       const rank = (byNotes ? 100 : 0) + (exact ? 50 : 0) - position;
-      // fill the form in only when the title matched outright or the judgement
-      // total pins the chart - a merely close title stays a suggestion
-      const confident = !!byNotes || exact;
+      // with no judgement total to check against, an exact title is the best we have
+      const confident = !!byNotes || (exact && !noteCount);
 
       if (!best || rank > best.rank) {
         best = { music, chart: confident ? chart : undefined, exact, matchedBy, confident, rank };
       }
     });
 
+    if (best && (best as ChartMatch).confident) {
+      const { rank: _rank, ...match } = best as ChartMatch & { rank: number };
+      return match;
+    }
+
+    // title got nowhere useful; let the numbers identify the chart on their own
+    const fingerprint = this.#byFingerprint(noteCount, difficulty, level);
+    if (fingerprint) {
+      return {
+        music: this.byId.get(fingerprint.musicId)!,
+        chart: fingerprint,
+        exact: false,
+        matchedBy: "fingerprint",
+        confident: true,
+      };
+    }
+
     if (!best) return null;
     const { rank: _rank, ...match } = best as ChartMatch & { rank: number };
     return match;
+  }
+
+  /** the one chart with this note count, difficulty and level - or nothing */
+  #byFingerprint(noteCount?: number | null, difficulty?: DifficultyName | null, level?: number | null) {
+    if (!noteCount) return undefined;
+    const matches = (this.#slot().chartsByNotes.get(noteCount) ?? []).filter(
+      (chart) =>
+        (!difficulty || chart.musicDifficulty === difficulty) &&
+        (!level || chart.playLevel === level),
+    );
+    return matches.length === 1 ? matches[0] : undefined;
   }
 }
 

@@ -3,23 +3,31 @@
 // under the title. Nothing here talks to the music database - matching a title
 // to an actual chart is musicRepository's job.
 
+import { findJudgementRows } from "./anchors";
 import { readDigits, regionContrast, MIN_CONFIDENCE } from "./digits";
 import { getMangaOcr } from "./manga-ocr";
 import {
+  ABSENT_OK_FIELDS,
+  CALIBRATED_PERFECT_Y,
+  CALIBRATED_PITCH,
   DIFFICULTY_CHIP,
   DIFFICULTY_COLORS,
-  JUDGEMENT_PANEL,
-  NUMERIC_REGIONS,
   OPTIONAL_FIELDS,
   TITLE,
+  TOP_REGIONS,
+  judgementPanel,
+  lowerBlockRegions,
   type Box,
   type Difficulty,
   type NumericField,
+  type NumericRegion,
 } from "./regions";
 
 export interface ExtractedResult {
   score: number | null;
   highScore: number | null;
+  /** chart level off the difficulty pill, a cross-check and a fallback key */
+  level: number | null;
   perfect: number | null;
   great: number | null;
   good: number | null;
@@ -38,6 +46,8 @@ export interface ExtractedResult {
   title: string;
   /** perfect + great + good + bad + miss, used to pin down which chart this is */
   noteCount: number | null;
+  /** false when the judgement rows could not be located and defaults were used */
+  anchored: boolean;
 
   confidence: Record<NumericField, number>;
   /** fields whose glyphs did not match cleanly - the form highlights these */
@@ -59,12 +69,25 @@ export async function extractResult(
   const confidence = {} as Record<NumericField, number>;
   const needsReview: NumericField[] = [];
 
-  // the panel is missing entirely on screenshots taken without judgement details
-  const hasJudgementDetail = regionContrast(image, JUDGEMENT_PANEL) > 0.15;
+  // the lower block sits at a different height on each layout; find it rather
+  // than assume it, and fall back to the calibrated position if that fails
+  const anchor = findJudgementRows(image);
+  const perfectY = anchor?.perfectY ?? CALIBRATED_PERFECT_Y;
+  const pitch = anchor?.pitch ?? CALIBRATED_PITCH;
 
-  for (const [key, region] of Object.entries(NUMERIC_REGIONS)) {
+  const regions: Record<NumericField, NumericRegion> = {
+    ...TOP_REGIONS,
+    ...lowerBlockRegions(perfectY, pitch),
+  };
+
+  // the panel is missing entirely on screenshots taken without judgement details
+  const hasJudgementDetail = regionContrast(image, judgementPanel(perfectY, pitch)) > 0.15;
+
+  for (const [key, region] of Object.entries(regions)) {
     const field = key as NumericField;
     const optional = (OPTIONAL_FIELDS as readonly string[]).includes(field);
+    // high score and the timing card are legitimately absent on some modes
+    const absentOk = (ABSENT_OK_FIELDS as readonly string[]).includes(field);
 
     if (optional && !hasJudgementDetail) {
       values[field] = null;
@@ -76,11 +99,13 @@ export async function extractResult(
     const plausible =
       reading.value !== null &&
       reading.confidence >= MIN_CONFIDENCE &&
-      (region.digits === undefined || reading.glyphs === region.digits);
+      (region.digits === undefined || reading.glyphs === region.digits) &&
+      // levels run 1..40; anything else is the label bleeding into the box
+      (field !== "level" || (reading.glyphs <= 2 && reading.value >= 1 && reading.value <= 40));
 
     values[field] = plausible ? reading.value : null;
     confidence[field] = reading.confidence;
-    if (!plausible && !optional) needsReview.push(field);
+    if (!plausible && !absentOk) needsReview.push(field);
   }
 
   const noteCount =
@@ -99,6 +124,7 @@ export async function extractResult(
     difficultyConfidence: difficulty.confidence,
     title,
     noteCount,
+    anchored: anchor !== null,
     confidence,
     needsReview,
   } as ExtractedResult;

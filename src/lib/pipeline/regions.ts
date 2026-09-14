@@ -1,8 +1,10 @@
 // Where things live on the result screen, as fractions of the screenshot.
 //
-// Calibrated against example/jp_with_judgement.png (1594x735) and
-// example/en_with_judgement.png (2340x1080) - both ~2.167 aspect, and every
-// region lands identically on both, so plain fractions are enough for now.
+// The TOP block (score, high score, title, difficulty) is fixed: the same
+// fractions land on every layout seen so far. The LOWER block (judgements,
+// combo, late/fast, flick) moves between layouts, so its boxes are not fixed
+// fractions - they are built from the detected PERFECT row by
+// `lowerBlockRegions()`. See anchors.ts for why.
 //
 // KNOWN GAP: a screenshot taken mid-transition has the whole layout slid to the
 // left, which throws every box off. Not handled - the extractor reports low
@@ -29,29 +31,100 @@ export interface NumericRegion extends Box {
   digits?: number;
 }
 
-const REGION_DEFS = {
+/** fixed on every layout: the top block does not move */
+export const TOP_REGIONS = {
   score: { x0: 0.274, y0: 0.28, x1: 0.525, y1: 0.385, metric: "luma", digits: 8 },
   highScore: { x0: 0.398, y0: 0.392, x1: 0.525, y1: 0.455, metric: "luma", digits: 8 },
-  perfect: { x0: 0.278, y0: 0.578, x1: 0.348, y1: 0.632, metric: "luma", digits: 4 },
-  great: { x0: 0.278, y0: 0.638, x1: 0.348, y1: 0.692, metric: "luma", digits: 4 },
-  good: { x0: 0.278, y0: 0.698, x1: 0.348, y1: 0.752, metric: "luma", digits: 4 },
-  bad: { x0: 0.278, y0: 0.758, x1: 0.348, y1: 0.812, metric: "luma", digits: 4 },
-  miss: { x0: 0.278, y0: 0.818, x1: 0.348, y1: 0.872, metric: "luma", digits: 4 },
-  maxCombo: { x0: 0.435, y0: 0.575, x1: 0.518, y1: 0.642, metric: "luma" },
-  late: { x0: 0.368, y0: 0.748, x1: 0.415, y1: 0.795, metric: "white" },
-  early: { x0: 0.466, y0: 0.748, x1: 0.503, y1: 0.795, metric: "white" },
-  wrongWay: { x0: 0.468, y0: 0.81, x1: 0.503, y1: 0.858, metric: "white" },
+  /** the digits after "Lv." on the difficulty pill; the label ends at ~0.375 on both servers */
+  level: { x0: 0.378, y0: 0.095, x1: 0.415, y1: 0.135, metric: "luma" },
 } as const satisfies Record<string, NumericRegion>;
 
-export type NumericField = keyof typeof REGION_DEFS;
+export type NumericField =
+  | keyof typeof TOP_REGIONS
+  | "perfect"
+  | "great"
+  | "good"
+  | "bad"
+  | "miss"
+  | "maxCombo"
+  | "late"
+  | "early"
+  | "wrongWay";
 
-export const NUMERIC_REGIONS: Record<NumericField, NumericRegion> = REGION_DEFS;
+export const NUMERIC_FIELDS: NumericField[] = [
+  "score",
+  "highScore",
+  "level",
+  "perfect",
+  "great",
+  "good",
+  "bad",
+  "miss",
+  "maxCombo",
+  "late",
+  "early",
+  "wrongWay",
+];
+
+/** the judgement rows in screen order */
+export const JUDGEMENT_ROWS = ["perfect", "great", "good", "bad", "miss"] as const;
 
 /** only present on "with judgement" screenshots */
 export const OPTIONAL_FIELDS = ["late", "early", "wrongWay"] as const;
 
+/** high score is simply absent on some live modes */
+export const ABSENT_OK_FIELDS = ["highScore", ...OPTIONAL_FIELDS] as const;
+
+/**
+ * The PERFECT row as the calibration screenshots' detector saw it. Every lower
+ * block box below is expressed relative to the row that is actually found.
+ */
+export const CALIBRATED_PERFECT_Y = 0.6085;
+export const CALIBRATED_PITCH = 0.06;
+
+/**
+ * Lower-block boxes, placed off the detected PERFECT row and row pitch. The x
+ * ranges are the calibrated ones - only the vertical position varies between
+ * layouts. Offsets are in units of row pitch so a differently scaled UI still
+ * lines up.
+ */
+export function lowerBlockRegions(perfectY: number, pitch: number) {
+  const rowHalf = pitch * 0.45;
+  const row = (index: number, extra: Partial<NumericRegion> = {}): NumericRegion => ({
+    x0: 0.278,
+    x1: 0.348,
+    y0: perfectY + index * pitch - rowHalf,
+    y1: perfectY + index * pitch + rowHalf,
+    metric: "luma",
+    digits: 4,
+    ...extra,
+  });
+  const at = (offset: number, half: number, box: Pick<Box, "x0" | "x1">, metric: InkMetric): NumericRegion => ({
+    ...box,
+    y0: perfectY + offset * pitch - half,
+    y1: perfectY + offset * pitch + half,
+    metric,
+  });
+
+  return {
+    perfect: row(0),
+    great: row(1),
+    good: row(2),
+    bad: row(3),
+    miss: row(4),
+    // COMBO sits on the PERFECT row, zero-padded to four digits like the rows
+    maxCombo: { ...at(0, 0.0335, { x0: 0.435, x1: 0.518 }, "luma"), digits: 4 },
+    // the late/fast bar and the flick line hang a fixed distance below the rows
+    late: at(2.72, 0.0235, { x0: 0.368, x1: 0.415 }, "white"),
+    early: at(2.72, 0.0235, { x0: 0.466, x1: 0.503 }, "white"),
+    wrongWay: at(3.77, 0.024, { x0: 0.468, x1: 0.503 }, "white"),
+  } satisfies Record<Exclude<NumericField, keyof typeof TOP_REGIONS>, NumericRegion>;
+}
+
 /** the whole late/early/wrong-way card, used to detect whether it is there at all */
-export const JUDGEMENT_PANEL: Box = { x0: 0.36, y0: 0.7, x1: 0.52, y1: 0.87 };
+export function judgementPanel(perfectY: number, pitch: number): Box {
+  return { x0: 0.36, y0: perfectY + 1.55 * pitch, x1: 0.52, y1: perfectY + 4.35 * pitch };
+}
 
 /** song title, dark text on the light header bar - feed this one to manga-ocr */
 export const TITLE: Box = { x0: 0.248, y0: 0.026, x1: 0.5, y1: 0.084 };

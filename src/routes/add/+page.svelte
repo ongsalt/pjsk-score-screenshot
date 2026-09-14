@@ -1,6 +1,6 @@
 <script lang="ts">
   import Toolbar from "$lib/components/shell/toolbar.svelte";
-  import { musicRepository } from "$lib/data/music.svelte";
+  import { musicRepository, type ChartMatch } from "$lib/data/music.svelte";
   import { settings } from "$lib/data/settings.svelte";
   import { hashFile, pendingQueue } from "$lib/data/pending.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
@@ -11,6 +11,7 @@
   const KEEP: NumericField[] = [
     "score",
     "highScore",
+    "level",
     "maxCombo",
     "perfect",
     "great",
@@ -70,9 +71,14 @@
         // when the shot was taken, not when it was copied off the phone
         const { at: playedAt } = await capturedAt(file, bytes);
         const result = await extractResult(file);
-        const match = musicRepository.matchChart(result.title, result.noteCount, result.difficulty);
+        const match = musicRepository.matchChart(
+          result.title,
+          result.noteCount,
+          result.difficulty,
+          result.level,
+        );
         const chart = match?.confident ? match.chart : undefined;
-        const reason = reasonFor(result, match?.confident ?? false, chart !== undefined);
+        const reason = reasonFor(result, match);
 
         if (!reason && chart && match) {
           playRecords.add({
@@ -135,10 +141,14 @@
     phase = "done";
   }
 
-  function reasonFor(result: ExtractedResult, confident: boolean, hasChart: boolean) {
+  function reasonFor(result: ExtractedResult, match: ChartMatch | null) {
     if (result.needsReview?.length) return "Some numbers were unclear";
-    if (!confident) return "Song title unreadable";
-    if (!hasChart) return "No matching chart";
+    if (!match) return "Song title unreadable";
+    // the song is certain but its charts all have a different note count: a
+    // misread digit, or a chart the game has revised since the database was built
+    if (match.exact && !match.confident) return "Judgement total matches no chart of this song";
+    if (!match.confident) return "Song title unreadable";
+    if (!match.chart) return "No matching chart";
     return "";
   }
 

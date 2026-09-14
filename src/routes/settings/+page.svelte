@@ -1,6 +1,5 @@
 <script lang="ts">
   import Toolbar from "$lib/components/shell/toolbar.svelte";
-  import { musicRepository } from "$lib/data/music.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
   import { settings } from "$lib/data/settings.svelte";
   import { bestDevice, hasWebGPU, hasWebNN } from "$lib/pipeline/manga-ocr";
