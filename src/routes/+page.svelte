@@ -104,7 +104,7 @@
         <span class="cap text-[10px]">When</span>
         <span class="cap text-[10px]">Song</span>
         <span class="cap text-[10px]">Chart</span>
-        <span class="cap text-[10px]">Perfect / Great / Good / Bad / Miss</span>
+        <span class="cap text-[10px]"> P / G / G / B / M</span>
         <span class="cap text-[10px] text-right">Rate</span>
         <span class="cap text-[10px] text-right">Score</span>
         <span></span>

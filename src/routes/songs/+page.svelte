@@ -175,7 +175,7 @@
         >
       </div>
 
-      <div class="flex gap-1.5 px-4 py-2.5 border-b border-line bg-surface shrink-0">
+      <div class="flex gap-1.5 p-2.5 border-b border-line bg-surface shrink-0">
         {#each DIFFICULTIES as value}
           {@const active = difficulty === value}
           <button
