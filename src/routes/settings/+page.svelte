@@ -47,7 +47,7 @@
         <button
           class="h-11 rounded text-sm transition-colors
                  {settings.current.server === value
-            ? 'bg-ink text-white font-medium'
+            ? 'bg-accent text-white font-medium'
             : 'text-muted hover:bg-sunken'}"
           onclick={() => (settings.current.server = value)}
         >
@@ -89,7 +89,7 @@
             {@const active = settings.current.device === option.id}
             <button
               class="h-9 rounded text-[12px] transition-colors disabled:opacity-30 disabled:cursor-not-allowed
-                     {active ? 'bg-ink text-white font-medium' : 'border border-line text-muted'}"
+                     {active ? 'bg-accent text-white font-medium' : 'border border-line text-muted'}"
               disabled={!option.available()}
               onclick={() => (settings.current.device = option.id)}
             >

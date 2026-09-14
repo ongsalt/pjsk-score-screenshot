@@ -88,7 +88,7 @@
           <button
             class="h-8 px-3 rounded text-[12.5px] transition-colors
                    {filter === option.id
-              ? 'bg-ink text-white font-medium'
+              ? 'bg-accent text-white font-medium'
               : 'border border-line text-muted'}"
             onclick={() => (params.f = option.id)}
           >
@@ -275,7 +275,7 @@
       <button
         class="h-8 px-3 rounded text-[13px] transition-colors
                {filter === option.id
-          ? 'bg-ink text-white font-medium'
+          ? 'bg-accent text-white font-medium'
           : 'border border-line text-muted'}"
         onclick={() => (params.f = option.id)}
       >

@@ -75,7 +75,7 @@
         <button
           class="h-7 rounded text-xs transition-colors
                  {settings.current.server === value
-            ? 'bg-ink text-white font-medium'
+            ? 'bg-accent text-white font-medium'
             : 'text-muted hover:bg-sunken'}"
           onclick={() => (settings.current.server = value as "jp" | "en")}
         >
