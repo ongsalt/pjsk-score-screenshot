@@ -98,9 +98,9 @@
           {/each}
         </div>
         <p class="text-xs leading-relaxed text-faint">
-          WebNN uses the NPU where the device has one — quicker and much easier on battery than the
-          GPU path. Unsupported operators fall back on their own, and a change applies to your next
-          import.
+          The shipped weights are int8, which WebAssembly runs natively and WebGPU does not — on the
+          GPU each quantized layer round-trips to the CPU, which measured slower. WebNN may do better
+          on a device with an NPU. A change applies to your next import.
         </p>
       </div>
     </div>

@@ -8,4 +8,17 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
+  // same cross-origin isolation as static/_headers, so threads work in dev too
+  server: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "credentialless",
+    },
+  },
+  preview: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "credentialless",
+    },
+  },
 });

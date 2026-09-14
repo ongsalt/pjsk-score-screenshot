@@ -1,0 +1,10 @@
+# Cross-origin isolation, which is what lets onnxruntime run the OCR encoder on
+# several threads (SharedArrayBuffer). Without these two headers the browser
+# reports crossOriginIsolated=false and the model runs on one core.
+#
+# `credentialless` rather than `require-corp`: it lets the song database and
+# Google Fonts load as ordinary anonymous cross-origin fetches without needing
+# them to send Cross-Origin-Resource-Policy.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless

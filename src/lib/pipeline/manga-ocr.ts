@@ -27,6 +27,10 @@ function getOrt() {
   // dynamic so nothing touches wasm during prerender
   runtime ??= import("onnxruntime-web/webgpu").then((ort) => {
     ort.env.wasm.wasmPaths = { wasm: ortWasmUrl };
+    // the encoder is 80% of a title read and it parallelises well; this only
+    // takes effect when the page is cross-origin isolated (see static/_headers),
+    // otherwise onnxruntime quietly runs single-threaded
+    ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 1);
     return ort;
   });
   return runtime;
@@ -214,10 +218,15 @@ export function hasWebGPU() {
   return typeof navigator !== "undefined" && "gpu" in navigator;
 }
 
-/** what the browser can actually do, fastest first */
+/**
+ * The default is wasm, on purpose. The weights we ship are int8 (q8), and the
+ * WebGPU EP has no kernels for int8 matmul: every quantized node falls back to
+ * the CPU with a GPU<->CPU copy on either side, which measured SLOWER than
+ * plain wasm - about 5 s per title against 1.6 s. WebGPU only pays off with
+ * float weights, which we do not ship. It stays selectable in settings for
+ * anyone who wants to try it.
+ */
 export function bestDevice(): Device {
-  if (hasWebNN()) return "webnn";
-  if (hasWebGPU()) return "webgpu";
   return "wasm";
 }
 
