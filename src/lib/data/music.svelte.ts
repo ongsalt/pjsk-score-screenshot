@@ -5,7 +5,6 @@
 // https://sekai-world.github.io/sekai-master-db-diff/musics.json
 
 import { Index } from "flexsearch";
-import { SvelteMap } from "svelte/reactivity";
 import type { Difficulty as DifficultyName } from "$lib/pipeline/regions";
 import { isLatin, kanaToRomaji, looseRomaji } from "./romaji";
 import { serverResources, settings } from "./settings.svelte";
@@ -77,9 +76,12 @@ type Server = keyof typeof serverResources;
 class ServerData {
   musics: Music[] = $state([]);
   charts: Chart[] = $state([]);
-  byId = new SvelteMap<number, Music>();
+  // these are only ever REPLACED after a fetch, never mutated, so the FIELD is
+  // the signal ($state) and a plain Map is enough - a non-state field holding a
+  // reactive map notified nobody when the whole map was swapped out
+  byId: Map<number, Music> = $state(new Map());
   /** charts by their own id - the history feed looks up one per record */
-  chartById = new SvelteMap<number, Chart>();
+  chartById: Map<number, Chart> = $state(new Map());
   chartsByMusic: Map<number, Chart[]> = $state(new Map());
   /** charts by total note count - the judgement sum is a fingerprint for the chart */
   chartsByNotes: Map<number, Chart[]> = $state(new Map());
@@ -96,16 +98,19 @@ class ServerData {
 }
 
 class MusicRepository {
-  #slots = new SvelteMap<Server, ServerData>();
+  /**
+   * One slot per server, all created up front. Creating them lazily meant the
+   * first read for a newly selected server - which happens in a template
+   * expression - wrote to the map, and Svelte rightly refuses state writes
+   * during render. The map itself needs no reactivity: the slot fields are the
+   * signals, and this is a plain Map for exactly that reason.
+   */
+  #slots = new Map<Server, ServerData>(
+    (Object.keys(serverResources) as Server[]).map((server) => [server, new ServerData()]),
+  );
 
-  /** the slot for a server, created empty on first use */
   #slot(server: Server = settings.current.server): ServerData {
-    let slot = this.#slots.get(server);
-    if (!slot) {
-      slot = new ServerData();
-      this.#slots.set(server, slot);
-    }
-    return slot;
+    return this.#slots.get(server)!;
   }
 
   get musics() {
@@ -178,8 +183,8 @@ class MusicRepository {
 
       slot.musics = musics;
       slot.charts = charts;
-      slot.byId = new SvelteMap(musics.map((music) => [music.id, music]));
-      slot.chartById = new SvelteMap(charts.map((chart) => [chart.id, chart]));
+      slot.byId = new Map(musics.map((music) => [music.id, music]));
+      slot.chartById = new Map(charts.map((chart) => [chart.id, chart]));
       slot.chartsByMusic = chartsByMusic;
       slot.chartsByNotes = chartsByNotes;
       // build the index now, while the page is still showing a loading state -

@@ -1,7 +1,7 @@
 import { PersistedState } from "runed";
 import { SvelteMap } from "svelte/reactivity";
 import type { Difficulty, NumericField } from "$lib/pipeline/regions";
-import { settings } from "./settings.svelte";
+import { serverResources, settings } from "./settings.svelte";
 
 /**
  * A screenshot the reader was not confident about, waiting to be corrected.
@@ -80,18 +80,20 @@ async function removeShot(server: Server, id: number) {
 
 class PendingQueue {
   /** one queue per server, like the records themselves */
-  #stores = new Map<Server, PersistedState<PendingReview[]>>();
+  // one store per server, built up front: a getter that creates state on first
+  // read runs during render, and that is where state must never be written
+  #stores = new Map<Server, PersistedState<PendingReview[]>>(
+    (Object.keys(serverResources) as Server[]).map((server) => [
+      server,
+      new PersistedState<PendingReview[]>(`pendingReviews:${server}`, []),
+    ]),
+  );
   /** object urls for the screenshots, keyed "<server>/<id>" - ids repeat across servers */
   #previews = new SvelteMap<string, string>();
   #hydrating = new Set<string>();
 
   #store(server: Server = settings.current.server) {
-    let existing = this.#stores.get(server);
-    if (!existing) {
-      existing = new PersistedState<PendingReview[]>(`pendingReviews:${server}`, []);
-      this.#stores.set(server, existing);
-    }
-    return existing;
+    return this.#stores.get(server)!;
   }
 
   #key(id: number, server: Server = settings.current.server) {

@@ -1,5 +1,5 @@
 import { PersistedState } from "runed";
-import { settings } from "./settings.svelte";
+import { serverResources, settings } from "./settings.svelte";
 
 // free tier d1 is more than enough for this
 export interface PlayRecord {
@@ -38,15 +38,17 @@ type Server = typeof settings.current.server;
  * single shared list would point half the records at the wrong charts.
  */
 class PlayRecords {
-  #stores = new Map<Server, PersistedState<PlayRecord[]>>();
+  // one store per server, built up front: a getter that creates state on first
+  // read runs during render, and that is where state must never be written
+  #stores = new Map<Server, PersistedState<PlayRecord[]>>(
+    (Object.keys(serverResources) as Server[]).map((server) => [
+      server,
+      new PersistedState<PlayRecord[]>(`playRecords:${server}`, this.#adopt(server)),
+    ]),
+  );
 
   #store(server: Server = settings.current.server) {
-    let existing = this.#stores.get(server);
-    if (!existing) {
-      existing = new PersistedState<PlayRecord[]>(`playRecords:${server}`, this.#adopt(server));
-      this.#stores.set(server, existing);
-    }
-    return existing;
+    return this.#stores.get(server)!;
   }
 
   /**
