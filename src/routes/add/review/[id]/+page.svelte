@@ -2,12 +2,15 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import RecordForm from "$lib/components/record-form.svelte";
+  import Screenshot from "$lib/components/screenshot.svelte";
   import Toolbar from "$lib/components/shell/toolbar.svelte";
   import { musicRepository } from "$lib/data/music.svelte";
   import { pendingQueue } from "$lib/data/pending.svelte";
   import { playRecords } from "$lib/data/play-record.svelte";
 
   musicRepository.load();
+  // previews live on disk between sessions; pull this queue's back into memory
+  pendingQueue.hydrate();
 
   const id = $derived(Number.parseInt(page.params.id ?? ""));
   // the queue is persisted state, so the form binds straight to the stored entry
@@ -77,13 +80,13 @@
   {@const preview = pendingQueue.previewOf(entry.id)}
   <div class="flex flex-col gap-3.5 p-4 max-w-2xl">
     {#if preview}
-      <img src={preview} alt="" class="w-full max-h-44 object-cover rounded-md border border-line" />
+      <Screenshot src={preview} alt={entry.fileName} />
     {:else}
       <div
         class="flex items-center gap-2 px-3.5 py-3 rounded-md border border-dashed border-ghost text-[13px] text-faint"
       >
         <span class="num truncate">{entry.fileName}</span>
-        <span class="shrink-0">· screenshot not kept</span>
+        <span class="shrink-0">· screenshot not available</span>
       </div>
     {/if}
 

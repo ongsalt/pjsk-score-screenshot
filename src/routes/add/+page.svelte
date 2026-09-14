@@ -29,6 +29,9 @@
   let tally = $state({ saved: 0, duplicate: 0 });
 
 
+  // flagged screenshots persist on disk; read this queue's back after a reload
+  pendingQueue.hydrate();
+
   const rate = $derived(
     progress.done > 0 && progress.startedAt
       ? progress.done / ((Date.now() - progress.startedAt) / 1000)
@@ -180,8 +183,8 @@
       <span class="text-xs text-faint">Hundreds at a time is fine</span>
     </label>
     <p class="text-[11.5px] text-faint">
-      Read on this device. Only the numbers are kept — no screenshots stored. Re-importing the same
-      file is skipped.
+      Read on this device, nothing uploaded. A screenshot is kept only while it waits for review,
+      then deleted. Re-importing the same file is skipped.
     </p>
   {/if}
 
@@ -256,9 +259,9 @@
           class="flex items-center gap-3 p-3 rounded-md border border-line bg-surface"
         >
           {#if preview}
-            <img src={preview} alt="" class="w-14 h-8 object-cover rounded-sm shrink-0" />
+            <img src={preview} alt="" class="w-16 h-auto rounded-sm shrink-0" />
           {:else}
-            <div class="w-14 h-8 rounded-sm border border-dashed border-ghost shrink-0"></div>
+            <div class="w-16 aspect-[13/6] rounded-sm border border-dashed border-ghost shrink-0"></div>
           {/if}
           <div class="flex flex-col gap-0.5 flex-1 min-w-0">
             <span class="num text-[13px] truncate">{entry.fileName}</span>

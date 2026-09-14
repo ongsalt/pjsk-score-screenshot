@@ -6,10 +6,11 @@ import { settings } from "./settings.svelte";
 /**
  * A screenshot the reader was not confident about, waiting to be corrected.
  *
- * The extracted numbers persist so a reload does not throw away a half-finished
- * review of 500 imports. The screenshot itself does NOT - it lives in an
- * in-memory preview map for the current session only, and after a reload the
- * review form shows the numbers without the image.
+ * The extracted numbers persist in localStorage, and the screenshot itself is
+ * kept in the origin private file system - so a reload mid-way through 500
+ * imports loses nothing, and you can still see what you are correcting. The
+ * file is deleted the moment the entry is reviewed or discarded: nothing
+ * outlives the queue. Clean imports are never written anywhere.
  */
 export interface PendingReview {
   id: number;
@@ -27,11 +28,62 @@ export interface PendingReview {
 
 type Server = typeof settings.current.server;
 
+/**
+ * Screenshots awaiting review live in OPFS under pending/<server>/<id>. It is
+ * a real filesystem, so hundreds of flagged shots cost nothing in memory, and
+ * it is private to this origin. Older browsers without it simply get no
+ * preview after a reload - the numbers are still there.
+ */
+async function pendingDirectory(server: Server) {
+  if (typeof navigator === "undefined" || !navigator.storage?.getDirectory) return null;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const pending = await root.getDirectoryHandle("pending", { create: true });
+    return await pending.getDirectoryHandle(server, { create: true });
+  } catch {
+    return null;
+  }
+}
+
+async function writeShot(server: Server, id: number, file: Blob) {
+  const dir = await pendingDirectory(server);
+  if (!dir) return;
+  try {
+    const handle = await dir.getFileHandle(String(id), { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(file);
+    await writable.close();
+  } catch {
+    // no createWritable on this browser - the session preview still works
+  }
+}
+
+async function readShot(server: Server, id: number): Promise<File | null> {
+  const dir = await pendingDirectory(server);
+  if (!dir) return null;
+  try {
+    return await (await dir.getFileHandle(String(id))).getFile();
+  } catch {
+    return null;
+  }
+}
+
+async function removeShot(server: Server, id: number) {
+  const dir = await pendingDirectory(server);
+  if (!dir) return;
+  try {
+    await dir.removeEntry(String(id));
+  } catch {
+    // already gone
+  }
+}
+
 class PendingQueue {
   /** one queue per server, like the records themselves */
   #stores = new Map<Server, PersistedState<PendingReview[]>>();
-  /** object urls for this session only; empty after a reload, by design */
-  #previews = new SvelteMap<number, string>();
+  /** object urls for the screenshots, keyed "<server>/<id>" - ids repeat across servers */
+  #previews = new SvelteMap<string, string>();
+  #hydrating = new Set<string>();
 
   #store(server: Server = settings.current.server) {
     let existing = this.#stores.get(server);
@@ -40,6 +92,10 @@ class PendingQueue {
       this.#stores.set(server, existing);
     }
     return existing;
+  }
+
+  #key(id: number, server: Server = settings.current.server) {
+    return `${server}/${id}`;
   }
 
   get entries(): PendingReview[] {
@@ -58,31 +114,62 @@ class PendingQueue {
     return this.entries.find((entry) => entry.id === id);
   }
 
+  /** an object url for the screenshot, or undefined until hydrate() has read it back */
   previewOf(id: number) {
-    return this.#previews.get(id);
+    return this.#previews.get(this.#key(id));
   }
 
-  add(entry: Omit<PendingReview, "id">, preview?: Blob) {
-    const store = this.#store();
+  /**
+   * After a reload the previews are on disk but not in memory: read back the
+   * ones for this server's queue. Safe to call repeatedly.
+   */
+  async hydrate() {
+    const server = settings.current.server;
+    await Promise.all(
+      this.#store(server).current.map(async (entry) => {
+        const key = this.#key(entry.id, server);
+        if (this.#previews.has(key) || this.#hydrating.has(key)) return;
+        this.#hydrating.add(key);
+        try {
+          const file = await readShot(server, entry.id);
+          if (file) this.#previews.set(key, URL.createObjectURL(file));
+        } finally {
+          this.#hydrating.delete(key);
+        }
+      }),
+    );
+  }
+
+  add(entry: Omit<PendingReview, "id">, screenshot?: Blob) {
+    const server = settings.current.server;
+    const store = this.#store(server);
     const id = store.current.reduce((max, it) => Math.max(max, it.id), 0) + 1;
     store.current = [...store.current, { ...entry, id }];
-    if (preview) this.#previews.set(id, URL.createObjectURL(preview));
+
+    if (screenshot) {
+      this.#previews.set(this.#key(id, server), URL.createObjectURL(screenshot));
+      // kept on disk until this entry is reviewed
+      void writeShot(server, id, screenshot);
+    }
     return id;
   }
 
   resolve(id: number) {
-    const store = this.#store();
+    const server = settings.current.server;
+    const store = this.#store(server);
     store.current = store.current.filter((entry) => entry.id !== id);
-    const url = this.#previews.get(id);
+
+    const key = this.#key(id, server);
+    const url = this.#previews.get(key);
     if (url) {
       URL.revokeObjectURL(url);
-      this.#previews.delete(id);
+      this.#previews.delete(key);
     }
+    void removeShot(server, id);
   }
 
   clear() {
-    for (const id of [...this.#previews.keys()]) this.resolve(id);
-    this.#store().current = [];
+    for (const entry of [...this.entries]) this.resolve(entry.id);
   }
 }
 
